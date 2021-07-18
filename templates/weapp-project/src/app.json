@@ -1,0 +1,26 @@
+{
+    "pages": [
+        {
+            "title": "首页",
+            "path": "pages/index/index",
+            "meta": {
+                "auth": false
+            }
+        },
+        {
+            "title": "日志",
+            "path": "pages/logs/logs",
+            "meta": {
+                "auth": false
+            }
+        }
+    ],
+    "window": {
+        "backgroundTextStyle": "light",
+        "navigationBarBackgroundColor": "#fff",
+        "navigationBarTitleText": "Weixin",
+        "navigationBarTextStyle": "black"
+    },
+    "style": "v2",
+    "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,13 @@
+{
+    "description": "template",
+    "miniprogramRoot": "dist/",
+    "setting": {
+        "es6": true,
+        "packNpmRelationList": [
+            {
+                "packageJsonPath": "./package.json",
+                "miniprogramNpmDistDir": "./dist"
+            }
+        ]
+    }
+}

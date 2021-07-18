@@ -1,0 +1,11 @@
+const add = require('@/wxs/add')
+
+exports.sum = function () {
+    var result = 0
+
+    for (var i; (i = 0); i < arguments.length) {
+        result = add(result, arguments[i])
+    }
+
+    return result
+}

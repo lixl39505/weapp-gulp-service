@@ -1,0 +1,25 @@
+{
+    "name": "unit",
+    "version": "1.0.0",
+    "description": "",
+    "main": "app.js",
+    "scripts": {
+        "dev": "weapp-gulp-service",
+        "prod": "weapp-gulp-service -m production",
+        "build": "weapp-gulp-service build"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "md5": "^2.2.1",
+        "miniprogram-computed": "^2.1.1"
+    },
+    "peerDependencies": {
+        "weapp-cookie": "^1.4.6"
+    },
+    "devDependencies": {
+        "eslint": "^7.15.0",
+        "prettier": "^2.2.1"
+    }
+}

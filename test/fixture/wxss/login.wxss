@@ -1,0 +1,9 @@
+@import '@/wxss/base.wxss';
+
+.login {
+    background: url('@/img/wx.png');
+}
+
+.login-btn {
+    font-size: 16px;
+}

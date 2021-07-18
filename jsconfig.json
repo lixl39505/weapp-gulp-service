@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+        // 支持路径别名导航
+        "paths": {
+            "@/*": ["./src/*"],
+            "config/*": ["./src/config/*"],
+            "core/*": ["./src/core/*"],
+            "internal/*": ["./src/internal/*"],
+            "plugins/*": ["./src/plugins/*"],
+            "utils/*": ["./src/utils/*"],
+            "~/*": ["./test/*"],
+            "~h": ["./test/shared/helper.js"],
+            "~f/*": ["./test/fakes/*"]
+        }
+    },
+    //Add any build/compiled folders here to stop vscode searching those
+    "exclude": ["node_modules", "dist"]
+}

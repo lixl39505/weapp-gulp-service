@@ -1,0 +1,53 @@
+const path = require('path')
+const sinon = require('sinon')
+//
+const { getPkgJson } = require('~h')
+const defaults = require('./defaults'),
+    pkgJson = getPkgJson()
+
+module.exports = function () {
+    const options = defaults(),
+        baseDir = path.dirname(options.config),
+        common = {
+            // context
+            baseDir,
+            sourceDir: path.join(baseDir, './fixture'),
+            outputDir: path.join(baseDir, './dist'),
+            cacheDir: path.join(baseDir, './wgs'),
+            npmList: [
+                {
+                    path: path.join(baseDir, './fixture/json/package.json'), // node_module安装目录
+                    output: path.join(baseDir, './dist'), // miniprogram_npm安装目录
+                },
+            ],
+        }
+
+    Object.assign(options, common)
+
+    const context = {
+        options,
+        ...common,
+        // pkg
+        _version: pkgJson.version,
+        npmList: options.npmList,
+
+        // methods
+        depend: sinon.fake(),
+        addDep: sinon.fake(),
+        removeGraphNodes: sinon.fake(),
+        removeCache: sinon.fake(),
+        createFileContext(file) {
+            let fileContext = Object.create(context)
+
+            Object.assign(fileContext, {
+                originalPath: file.path,
+                customDeps: [], // 自定义依赖
+                depended: false,
+            })
+
+            return fileContext
+        },
+    }
+
+    return context
+}
