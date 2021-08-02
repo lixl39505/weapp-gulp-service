@@ -1,6 +1,6 @@
 {
     "name": "weapp-gulp-service",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "weapp precompile workflow",
     "main": "src/index.js",
     "bin": {
