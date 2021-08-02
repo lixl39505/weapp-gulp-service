@@ -138,7 +138,7 @@ module.exports = {
 
 ```js
 module.exports = {
-    // 添加环境变量（优先级高于.evn等配置文件）
+    // 添加环境变量（优先级高于.env等配置文件）
     env: {
         APPID: 'xxxxxxxxx',
     },
@@ -548,7 +548,7 @@ const gulpIf = require('gulp-if')
 }
 ```
 
-一个标准的 gulp 工作流，一般都是从 src 开始，最后以 dist 结尾。因此工具内部将 src 以及 dist 部分封装了起来，用户只需定义中间的处理过程。src 部分除了查询目标文件外，还会添加进度信息、添加编译上下文对象等等。dist 部分除了输出编译产物外，还会进行进度汇报、更新本地缓存信息等等。
+一个标准的 gulp 工作流，一般都是从 src 开始，最后以 dest 结尾。因此工具内部将 src 以及 dest 部分封装了起来，用户只需定义中间的处理过程。src 部分除了查询目标文件外，还会添加进度信息、添加编译上下文对象等等。dest 部分除了输出编译产物外，还会进行进度汇报、更新本地缓存信息等等。
 
 之前提到过只有注册过的 piper 才可以在 use 中直接通过名称引用。用户也可以注册自己的 piper，比如：
 
@@ -568,46 +568,18 @@ module.exports = {
 }
 ```
 
-当然也提供了移除方法:
+注册完成后，可以通过 Compiler 引用或者移除：
 
 ```js
-Compiler.remove('gulp-custom')
-```
-
-注册 piper 的另一个好处便是，即使是在 piper 内部，也可以复用其它 piper，比如单文件编译插件 gulp-mp：
-
-```js
-// core/internal/gulp-mp.js
-const gulpIf = require('gulp-if')
-const gulpSfc = require('./gulp-sfc')
-const combine = require('multipipe')
-const rqp = require('../core/require-piper') // 用于引用piper
-
-module.exports = function (options = {}) {
-    return combine(
-        gulpSfc(), // 单文件编译
-        gulpIf(function (file) {
-            return file.extname == '.json'
-        }, rqp('gulp-json')(options)), // 复用gulp-json piper
-        gulpIf(function (file) {
-            return file.extname == '.js'
-        }, rqp('gulp-js')(options)), // 复用gulp-js piper
-        gulpIf(function (file) {
-            return file.extname == '.wxml'
-        }, rqp('gulp-wxml')(options)),
-        gulpIf(function (file) {
-            return file.extname == '.less'
-        }, rqp('gulp-less')(options)),
-        gulpIf(function (file) {
-            return file.extname == '.css'
-        }, rqp('gulp-css')(options))
-    )
-}
+// reuse
+const gulpCustom = Compiler.getPipe('gulp-custom')
+// remove
+Compiler.removePipe('gulp-custom')
 ```
 
 ### 插件扩展
 
-除了自定义 task 以及可复用的 piper，工具还支持 plugin。plugin 支持自定义声明周期——hooks，以及扩展 Compiler 原型，以便从整条编译链路上实现一些自定义逻辑。插件的原型如下所示：
+自定义 plugin 是一个函数，其中可以添加 Compiler hooks（生命周期钩子）、扩展 Compiler 原型。比如：
 
 ```js
 // custom-plugin.js
@@ -627,7 +599,7 @@ module.exports = function (Compiler) {
 }
 ```
 
-安装插件：
+可以在 weapp.config.js 中安装插件：
 
 ```js
 const Compiler = require('weapp-gulp-service')
@@ -644,18 +616,16 @@ module.exports = {
 
 目前提供了 4 种 hook，分别是：
 
-```json
+```js
 {
     "init": [], // 初始化时
     "clean": [], // 清理过期文件前
-    "beforeCompile": [], // 编译前
-    "afterCompile": [] // 编译后
+    "beforeCompile": [], // 所有task任务开始前
+    "afterCompile": [] // 所有task任务完成后
 }
 ```
 
-init 是 compiler 实例创建的过程；clean 是编译的准备阶段；beforeCompile 是指所有 task 开始之前；afterCompile 是指所有 task 完成之后。
-
-每个 hook 函数原型如下：
+hook 函数原型如下：
 
 ```js
 function (payload) {
@@ -666,22 +636,25 @@ function (payload) {
 }
 ```
 
-hook 函数内部可以通过 this 访问当前的 compiler 实例；payload 参数根据 hook 类型不同而有所区别，但是都存在一个 next 方法（为了支持异步操作），每个 hook 在结束时都需要调用 next 以进入下一个 hook。
+hook 函数内部可以通过 this 访问当前的 compiler 实例。payload 根据 hook 类型不同而有所区别，但是都存在一个 next 方法（支持异步操作），需要在 hook 任务结束时调用。
 
 #### 编译上下文
 
-在插件中用户可以向 compiler 原型或者实例上添加自定义属性，其中公开的属性（以`_`开头的为私有属性）可以通过编译上下文访问到，比如：
+compiler 会向 gulp 流中的 file 对象注入一个编译上下文对象 context，通过 context 可以访问 compiler 上的公开属性和方法（非`_`开头）。
 
 ```js
-// some piper
+// custom piper
 module.exports = function (options) {
     return through2.obj(function (file, enc, next) {
         if (file.isNull()) {
             return next(null, file)
         }
 
-        // context会自动注入到每个file对象
+        // get sourceDir from context
         var { sourceDir } = file.context
+        // use $customMethod
+        file.context.$customMethod()
+
         // ...
     })
 }
@@ -689,4 +662,4 @@ module.exports = function (options) {
 
 #### 插件开发规范
 
-实际上依赖图、编译缓存等功能都是以插件的形式添加到 Compiler 上面去的（插件开发可以参考 src/plugins）。为了避免跟内部插件产生命名冲突，建议所有自定义属性都以$开头，比如`$foo、`、`\_$bar`、`$getFoo`
+实际上依赖图、编译缓存等功能都是以插件的形式添加到 Compiler 上面去的（插件开发可以参考 src/plugins）。为了避免跟内部插件产生命名冲突，建议由 plugin 添加的属性都以$开头，比如`$foo、`、`$getFoo`。
