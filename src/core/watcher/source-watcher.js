@@ -7,6 +7,7 @@ module.exports = (compiler) => {
         incrementCompile = debounce(200, () => {
             let filePaths = [],
                 unlinkPaths = [],
+                compilePaths = [],
                 visited = {}
 
             // deduplicate
@@ -21,10 +22,12 @@ module.exports = (compiler) => {
             filePaths.forEach((v) => {
                 if (visited[v].type === 'unlink') {
                     unlinkPaths.push(v)
+                } else {
+                    compilePaths.push(v)
                 }
             })
             // 增量编译
-            compiler.incrementCompile(filePaths)
+            compiler.incrementCompile(compilePaths)
             // 批量删除
             if (unlinkPaths.length) {
                 compiler.nextTask((cb) => {

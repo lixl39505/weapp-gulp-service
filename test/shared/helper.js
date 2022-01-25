@@ -99,3 +99,15 @@ exports.fromArray = function (arr) {
         }
     )
 }
+
+// 统一路径分隔符为'/'
+exports.toGlobPath = function (s) {
+    s = path.normalize(s)
+
+    return path.sep == '\\' ? s.replace(/\\/g, '/') : s
+}
+
+// 获取本地化路径
+exports.pathify = function (v) {
+    return path.join(v)
+}

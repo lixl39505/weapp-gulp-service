@@ -1,10 +1,12 @@
-// stream
+// 3rd
 const { dest } = require('gulp')
 const gulpRename = require('gulp-rename')
 const gulpReplace = require('gulp-replace')
 const gulpIf = require('gulp-if')
 const gulpLess = require('gulp-less')
 const gulpPostcss = require('gulp-postcss')
+// internal
+const gulpEnv = require('./gulp-env')
 const gulpDepend = require('./gulp-depend')
 const gulpDepAdd = require('./gulp-dep-add')
 const gulpLessVar = require('./gulp-less-var')
@@ -26,9 +28,9 @@ module.exports = function (options = {}) {
 
     if (lessVar) {
         // 全局less变量注入
-        lessOptons.modifyVars = {
-            hack: `true; @import "${lessVar}";`,
-        }
+        if (!lessOptons.modifyVars) lessOptons.modifyVars = {}
+        if (!lessOptons.modifyVars.hack) lessOptons.modifyVars.hack = ''
+        lessOptons.modifyVars.hack += `true; @import "${lessVar}";`
     }
 
     // less变量文件处理
@@ -52,6 +54,8 @@ module.exports = function (options = {}) {
     )
 
     return combine(
+        // 环境变量处理
+        gulpEnv(options),
         // 分支,lessVar文件
         gulpIf(function (file) {
             return lessVar && file.path == lessVar

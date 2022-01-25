@@ -12,7 +12,7 @@ function uid(file) {
 const hooks = {
     init({ next }) {
         // private state
-        this._compiled = this._db.get('compiled').value() || {} // 依赖图
+        this._compiled = this._db.get('compiled').value() || {} // 缓存记录
         this._hitTimes = 0 // 缓存命中数
         this._cacheTimes = 0 // 缓存总数
         this._cw = 0 // 写次数

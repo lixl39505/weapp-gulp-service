@@ -5,12 +5,11 @@ const Vinyl = require('vinyl')
 //
 const { es6ImportReg } = require('config/constants')
 const { wgsResolve } = require('core/compiler').prototype
-const { fixture } = require('~h')
+const { fixture, pathify } = require('~h')
 const fakeCompilerUse = require('~f/compiler-use')
 //
 let Compiler,
     next = () => {},
-    pathify = (v) => path.join(v),
     depGraph,
     context,
     hooks
@@ -52,7 +51,7 @@ describe('plugin-dep-graph', function () {
                 path: fixture('js/c.js'),
                 contents: Buffer.from('console.log(process.env.APP_SERVER)'),
                 context: {
-                    customDeps: ['/.env/APP_SERVER'],
+                    customDeps: [fixture('.env/APP_SERVER')],
                 },
             })
 
@@ -120,17 +119,17 @@ describe('plugin-dep-graph', function () {
 
         // traceReverseDep
         context
-            .traceReverseDep(nodeC.path)
+            .traceReverseDep(c.path)
             .should.eql([pathify('/js/b.js'), pathify('/js/a.js')])
 
         // addDep
         context.addDep(b, [
-            fixture('/js/c.js'), // duplicate
-            fixture('/js/d.js'), // new
+            fixture('js/c.js'), // duplicate
+            fixture('js/d.js'), // new
         ])
         nodeB.dependencies.should.eql([
             pathify('/js/c.js'),
-            fixture('/js/d.js'),
+            pathify('/js/d.js'),
         ])
 
         // removeDep

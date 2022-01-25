@@ -100,7 +100,6 @@ describe('watcher', function () {
                 fixture('c1.js'),
                 fixture('a2.js'),
                 fixture('b1.js'),
-                fixture('a1.js'),
             ])
             compiler.cleanSpec.firstArg.should.eql(unlinks)
             compiler.removeGraphNodes.firstArg.should.eql(unlinks)

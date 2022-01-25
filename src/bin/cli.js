@@ -15,6 +15,7 @@ program.version('1.0.0')
 // serve 运行
 program
     .command('serve', { isDefault: true })
+    .allowUnknownOption()
     .option(
         '-c, --config <string>',
         'configuration file path',
@@ -31,6 +32,7 @@ program
 // build 打包
 program
     .command('build')
+    .allowUnknownOption()
     .option(
         '-c, --config <string>',
         'configuration file path',
@@ -47,6 +49,7 @@ program
 // upload 上传代码
 program
     .command('upload [desc]')
+    .allowUnknownOption()
     .requiredOption('-v, --ver <string>', 'version number') // required
     .option('-m, --mode <string>', 'compile mode', 'production')
     .option(
@@ -77,6 +80,7 @@ program
 // 构建npm
 program
     .command('build:npm')
+    .allowUnknownOption()
     .option('-m, --mode <string>', 'compile mode', 'production')
     .option(
         '-c, --config <string>',

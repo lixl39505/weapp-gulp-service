@@ -7,7 +7,7 @@ const proxyquire = require('proxyquire')
 const low = require('lowdb')
 const Memory = require('lowdb/adapters/Memory')
 //
-const { getPkgJson, fixture, fromArray } = require('~h')
+const { getPkgJson, fixture, fromArray, toGlobPath } = require('~h')
 const fakeWeappConfig = require('~/fakes/defaults')
 // stubs
 let pkgInfo = getPkgJson(),
@@ -269,7 +269,11 @@ describe('compiler', function () {
                 .then(() => {
                     // js task
                     compiler._userTasks.js.should.deep.include({
-                        test: [path.resolve(compiler.sourceDir, './**/*.js')],
+                        test: [
+                            toGlobPath(
+                                path.resolve(compiler.sourceDir, './**/*.js')
+                            ),
+                        ],
                         compileAncestor: false,
                         cache: true,
                         output: true,
@@ -281,7 +285,11 @@ describe('compiler', function () {
                     )
                     // less task
                     compiler._userTasks.less.should.deep.include({
-                        test: [path.resolve(compiler.sourceDir, './**/*.less')],
+                        test: [
+                            toGlobPath(
+                                path.resolve(compiler.sourceDir, './**/*.less')
+                            ),
+                        ],
                         compileAncestor: true,
                         cache: true,
                         output: true,
@@ -294,9 +302,13 @@ describe('compiler', function () {
                     // img task
                     compiler._userTasks.img.should.deep.include({
                         test: [
-                            path.resolve(
-                                compiler.sourceDir,
-                                `./**/*.{${compiler.options.imgType.join(',')}}`
+                            toGlobPath(
+                                path.resolve(
+                                    compiler.sourceDir,
+                                    `./**/*.{${compiler.options.imgType.join(
+                                        ','
+                                    )}}`
+                                )
                             ),
                         ],
                         compileAncestor: false,
@@ -310,7 +322,7 @@ describe('compiler', function () {
                     )
                     // pkg task
                     compiler._internalTasks.pkg.should.deep.include({
-                        test: [fixture('json/package.json')],
+                        test: [toGlobPath(fixture('json/package.json'))],
                         compileAncestor: false,
                         cache: false,
                         output: false,

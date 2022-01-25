@@ -27,7 +27,7 @@ module.exports = function () {
     const context = {
         options,
         ...common,
-        // pkg
+        // pkg
         _version: pkgJson.version,
         npmList: options.npmList,
 

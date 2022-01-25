@@ -1,6 +1,8 @@
 const fs = require('fs')
 const path = require('path')
 const through = require('through2')
+const fancyLog = require('fancy-log')
+const ansiColors = require('ansi-colors')
 
 const { buildNpm: wxBuildNpm } = require('../core/wx-tool')
 const { makeCmd, checkNpmPkg, npmInstallNoSave } = require('../utils/cmd')
@@ -60,12 +62,9 @@ module.exports = function (options = {}) {
             },
             (err) => {
                 if (err) {
-                    if (tolerant) {
-                        console.warn(err.message)
-                        cb(null, file)
-                    } else {
-                        cb(err)
-                    }
+                    fancyLog(ansiColors.yellow(err.message))
+
+                    tolerant ? cb(null, file) : cb(err)
                 } else {
                     cb(null, file)
                 }

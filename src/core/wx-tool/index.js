@@ -1,6 +1,7 @@
-const ArrError = require('aggregate-error')
 const WxDevtoolCli = require('./cli')
 const WxCI = require('./ci')
+const fancyLog = require('fancy-log')
+const ansiColors = require('ansi-colors')
 
 // 接口对象
 let wx
@@ -45,7 +46,23 @@ function getWx(options, cb) {
         if (wx) {
             cb(null, wx)
         } else {
-            cb(new ArrError(errors, 'wx failed'))
+            fancyLog(
+                ansiColors.yellow(
+                    'Warning: ' + errors.map((e) => e.message).join(' or ')
+                )
+            )
+            fancyLog(
+                ansiColors.yellow(
+                    `The auto npm-build feature is not available, But you can do it manually(see https://developers.weixin.qq.com/miniprogram/dev/devtools/npm.html#_2-%E6%9E%84%E5%BB%BA-npm).`
+                )
+            )
+            fancyLog(
+                ansiColors.cyan(
+                    `We strongly recommend that you set up WE_CLI or WE_APP_PRIVATE_KEY_PATH environment variables to enbale auto npm-build feature.`
+                )
+            )
+            console.log('\n')
+            cb(new Error('Wechat interface call failed'))
         }
     }
 }

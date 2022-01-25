@@ -107,6 +107,10 @@ class Compiler extends Events {
         if (!fs.existsSync(this.cacheDir)) {
             fs.mkdirSync(this.cacheDir)
         }
+        // 创建output目录(影响小程序npm构建)
+        if (!fs.existsSync(this.outputDir)) {
+            fs.mkdirSync(this.outputDir)
+        }
 
         // private data
         this._db = connector({

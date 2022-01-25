@@ -10,6 +10,10 @@ node_modules
 .nyc_output
 
 # local env files
+.env.local
+.env.*.local
+**/mockignore.js
+build/env.js
 package-lock.json
 yo-*.*
 

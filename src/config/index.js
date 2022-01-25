@@ -5,8 +5,8 @@ const { objectMerge, loadProcessEnv } = require('../utils/helper')
 const defaults = require('./defaults')
 
 // 获取编译选项
-function resolveOptions(opts) {
-    let args = opts.args,
+function resolveOptions(cmdOptions) {
+    let args = cmdOptions.args,
         configFile = path.resolve(args.config),
         mode = args.mode,
         options = {}
@@ -16,13 +16,9 @@ function resolveOptions(opts) {
     env.mode = mode
     Object.assign(process.env, env)
 
-    // custom option
+    // 用户配置
     if (fs.existsSync(configFile)) {
         options = require(configFile)
-
-        if (typeof options === 'function') {
-            options = options()
-        }
     }
 
     // 运行时环境变量
@@ -38,11 +34,17 @@ function resolveOptions(opts) {
         options.app || {}
     )
 
-    // option合并
-    Object.assign(options, opts)
+    // 最终options
     options.config = configFile
+    Object.assign(options, cmdOptions)
+    options = objectMerge(defaults(), options)
 
-    return objectMerge(defaults(), options)
+    // 支持回调
+    if (options.callback) {
+        options.callback.call(null, options)
+    }
+
+    return options
 }
 
 module.exports = resolveOptions

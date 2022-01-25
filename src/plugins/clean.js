@@ -110,7 +110,7 @@ module.exports = function (Compiler) {
                     result = `${dirname}/${basename}.*`
                 }
 
-                return result
+                return toGlobPath(result)
             })
         },
         // 保存文件列表

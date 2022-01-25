@@ -4,7 +4,7 @@ const proxyquire = require('proxyquire')
 const Vinyl = require('vinyl')
 const sinon = require('sinon')
 //
-const { fixture } = require('~h')
+const { fixture, pathify } = require('~h')
 const fakeCompilerUse = require('~f/compiler-use')
 //
 let Compiler,
@@ -70,7 +70,7 @@ describe('plugin-compile-cache', function () {
         // run
         let cached = context.checkFileCached(foo)
         cached.should.equal(false) // 未缓存
-        context._compiled['/js/a.js'].should.equal(foo.stat.mtimeMs) // 更新时间戳
+        context._compiled[pathify('/js/a.js')].should.equal(foo.stat.mtimeMs) // 更新时间戳
         context._hitTimes.should.eql(0)
         context._cacheTimes.should.eql(1)
         // save

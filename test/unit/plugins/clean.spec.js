@@ -2,7 +2,7 @@ const path = require('path')
 const proxyquire = require('proxyquire')
 const sinon = require('sinon')
 //
-const { fixture } = require('~h')
+const { fixture, toGlobPath } = require('~h')
 const fakeCompilerUse = require('~f/compiler-use')
 //
 let Compiler,
@@ -100,8 +100,8 @@ describe('plugin-compile-cache', function () {
                 ])
 
                 context.getOutputPath.firstCall.returnValue.should.eql([
-                    path.join(context.baseDir, 'dist/css/bar2.*'),
-                    path.join(context.baseDir, 'dist/sfc/bar3/**'),
+                    toGlobPath(path.join(context.baseDir, 'dist/css/bar2.*')),
+                    toGlobPath(path.join(context.baseDir, 'dist/sfc/bar3/**')),
                 ])
 
                 context._expiredNum.should.equal(2)
@@ -125,8 +125,8 @@ describe('plugin-compile-cache', function () {
             .cleanSpec([fixture('js/bar1.js'), fixture('sfc/bar3.vue')])
             .then(() => {
                 context.getOutputPath.firstCall.returnValue.should.eql([
-                    path.join(context.baseDir, 'dist/js/bar1.*'),
-                    path.join(context.baseDir, 'dist/sfc/bar3/**'),
+                    toGlobPath(path.join(context.baseDir, 'dist/js/bar1.*')),
+                    toGlobPath(path.join(context.baseDir, 'dist/sfc/bar3/**')),
                 ])
 
                 context._fileList.should.eql([fixture('css/bar2.css')])

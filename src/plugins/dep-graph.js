@@ -98,7 +98,7 @@ const methods = {
                 match
 
             matchers.forEach((r) => {
-                // 正则匹配，取match[1]
+                // 正则匹配，取match[1]
                 if (type(r) === 'regexp') {
                     while ((match = r.exec(content)) !== null) {
                         var request = match[1]

@@ -14,7 +14,7 @@ describe('gulp-mp', function () {
         context = compilerContext()
     })
 
-    it('require-from-string', function () {
+    it('require-from-string', function () {
         const res = rfs(`
             module.exports = {
                 "usingComponents": {
