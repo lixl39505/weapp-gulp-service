@@ -2,7 +2,7 @@ const { src } = require('gulp')
 const { fixture, stream } = require('~h')
 const compilerContext = require('~f/compiler-context')
 //
-const gulpFileContext = require('internal/gulp-file-context')
+const gulpContext = require('internal/gulp-context')
 const gulpJs = require('internal/gulp-js')
 //
 let context = {}
@@ -15,7 +15,7 @@ describe('gulp-js', function () {
 
     it('trans', function (done) {
         src([fixture('js/a.js')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpJs(context.options))
             .pipe(
                 stream(function (file, enc, cb) {

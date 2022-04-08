@@ -4,13 +4,11 @@ const { series } = require('gulp')
 
 module.exports = (compiler) => {
     const pkgTask = compiler.getTaskConfig('pkg'),
-        watcher = compiler.createWatcher(pkgTask.test)
+        watcher = compiler.createWatcher(pkgTask.test.globs)
 
     watcher.on('all', () => {
-        progress.append(statsFilesNum(pkgTask.test))
-        compiler.nextTask(
-            series(compiler.createGulpTask(compiler.getTaskConfig('pkg')))
-        )
+        progress.append(statsFilesNum(pkgTask.test.globs))
+        compiler.nextTask(series(compiler.createGulpTask(pkgTask)))
     })
 
     return watcher

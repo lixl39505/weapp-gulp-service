@@ -1,5 +1,5 @@
 {
-    "description": "项目配置文件",
+    "description": "演示demo",
     "miniprogramRoot": "dist/",
     "packOptions": {
         "ignore": []
@@ -47,7 +47,7 @@
     "compileType": "miniprogram",
     "libVersion": "2.18.0",
     "appid": "wx9cf850702ede3565",
-    "projectname": "weapp-project",
+    "projectname": "wgs-demo",
     "debugOptions": {
         "hidedInDevtools": []
     },

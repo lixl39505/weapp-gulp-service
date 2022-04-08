@@ -3,7 +3,7 @@ const { src } = require('gulp')
 const { fixture, minify, stream, afterN } = require('~h')
 const compilerContext = require('~f/compiler-context')
 //
-const gulpFileContext = require('internal/gulp-file-context')
+const gulpContext = require('internal/gulp-context')
 const gulpMp = require('internal/gulp-mp')
 //
 let context = {}
@@ -41,7 +41,7 @@ describe('gulp-mp', function () {
             })
 
         src([fixture('sfc/bar.vue')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpMp(context.options))
             .pipe(
                 stream(function (file, env, cb) {
@@ -107,7 +107,7 @@ describe('gulp-mp', function () {
             })
 
         src([fixture('sfc/empty.vue')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpMp(context.options))
             .pipe(
                 stream(function (file, env, cb) {
@@ -164,7 +164,7 @@ describe('gulp-mp', function () {
             })
 
         src([fixture('sfc/multi.vue')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpMp(context.options))
             .pipe(
                 stream(function (file, env, cb) {

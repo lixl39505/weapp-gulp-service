@@ -26,8 +26,8 @@ function requirePiper(name) {
             '../core/progress': progressStub,
         })
     }
-    if (name === 'gulp-file-context') {
-        return require('internal/gulp-file-context')
+    if (name === 'gulp-context') {
+        return require('internal/gulp-context')
     }
     if (name === 'gulp-compile-cache') {
         return function ({ hit }) {
@@ -269,11 +269,17 @@ describe('compiler', function () {
                 .then(() => {
                     // js task
                     compiler._userTasks.js.should.deep.include({
-                        test: [
-                            toGlobPath(
-                                path.resolve(compiler.sourceDir, './**/*.js')
-                            ),
-                        ],
+                        test: {
+                            globs: [
+                                toGlobPath(
+                                    path.resolve(
+                                        compiler.sourceDir,
+                                        './**/*.js'
+                                    )
+                                ),
+                            ],
+                            options: {},
+                        },
                         compileAncestor: false,
                         cache: true,
                         output: true,
@@ -285,11 +291,17 @@ describe('compiler', function () {
                     )
                     // less task
                     compiler._userTasks.less.should.deep.include({
-                        test: [
-                            toGlobPath(
-                                path.resolve(compiler.sourceDir, './**/*.less')
-                            ),
-                        ],
+                        test: {
+                            globs: [
+                                toGlobPath(
+                                    path.resolve(
+                                        compiler.sourceDir,
+                                        './**/*.less'
+                                    )
+                                ),
+                            ],
+                            options: {},
+                        },
                         compileAncestor: true,
                         cache: true,
                         output: true,
@@ -301,16 +313,19 @@ describe('compiler', function () {
                     )
                     // img task
                     compiler._userTasks.img.should.deep.include({
-                        test: [
-                            toGlobPath(
-                                path.resolve(
-                                    compiler.sourceDir,
-                                    `./**/*.{${compiler.options.imgType.join(
-                                        ','
-                                    )}}`
-                                )
-                            ),
-                        ],
+                        test: {
+                            globs: [
+                                toGlobPath(
+                                    path.resolve(
+                                        compiler.sourceDir,
+                                        `./**/*.{${compiler.options.imgType.join(
+                                            ','
+                                        )}}`
+                                    )
+                                ),
+                            ],
+                            options: {},
+                        },
                         compileAncestor: false,
                         cache: true,
                         output: true,
@@ -322,7 +337,12 @@ describe('compiler', function () {
                     )
                     // pkg task
                     compiler._internalTasks.pkg.should.deep.include({
-                        test: [toGlobPath(fixture('json/package.json'))],
+                        test: {
+                            globs: [toGlobPath(fixture('json/package.json'))],
+                            options: {
+                                allowEmpty: true,
+                            },
+                        },
                         compileAncestor: false,
                         cache: false,
                         output: false,
@@ -432,7 +452,7 @@ describe('compiler', function () {
                     v.cache.should.equal(false)
                 })
                 // no up files
-                tasks.js.test.should.lengthOf(1)
+                tasks.js.test.globs.should.lengthOf(1)
             })
             .then(() => {
                 compiler.incrementCompile(fixture('a.less'))
@@ -445,7 +465,7 @@ describe('compiler', function () {
                     v.cache.should.equal(false)
                 })
                 // two up files
-                tasks.js.test.should.lengthOf(2)
+                tasks.js.test.globs.should.lengthOf(2)
             })
     })
 

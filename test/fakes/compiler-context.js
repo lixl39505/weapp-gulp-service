@@ -36,13 +36,14 @@ module.exports = function () {
         addDep: sinon.fake(),
         removeGraphNodes: sinon.fake(),
         removeCache: sinon.fake(),
-        createFileContext(file) {
+        createFileContext(file, session) {
             let fileContext = Object.create(context)
 
             Object.assign(fileContext, {
                 originalPath: file.path,
                 customDeps: [], // 自定义依赖
                 depended: false,
+                session,
             })
 
             return fileContext

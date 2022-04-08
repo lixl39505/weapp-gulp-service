@@ -1,5 +1,5 @@
 const path = require('path')
-const { debounce, type } = require('../utils/helper')
+const { debounce, type, remove } = require('../utils/helper')
 
 // 标准化path
 function normalizePath(filePath, base) {
@@ -64,7 +64,7 @@ const methods = {
 
         return normalizePath(originalPath || file.path, file.base)
     },
-    // 获取节点
+    // 根据文件或者文件path获取节点
     getGraphNode(file, create = false) {
         let id = this.getFileId(file),
             depGraph = this._depGraph,
@@ -79,6 +79,10 @@ const methods = {
         }
 
         return node
+    },
+    // 根据id获取节点
+    getGraphNodeById(id) {
+        return this._depGraph[id]
     },
     // 收集依赖
     depend(file, { matchers = [] } = {}) {
@@ -184,6 +188,27 @@ const methods = {
             }
         })
         node.dependencies.push(...newDeps)
+    },
+    // 删除依赖
+    removeDep(file, paths) {
+        if (typeof paths === 'string') {
+            paths = [paths]
+        }
+
+        let node = this.getGraphNode(file)
+
+        if (node) {
+            let deps = paths.map((v) => normalizePath(v, this.sourceDir))
+
+            deps.forEach((cid) => {
+                let child = this.getGraphNodeById(cid)
+                remove(node.dependencies, cid)
+
+                if (child) {
+                    remove(child.requiredBy, node.path)
+                }
+            })
+        }
     },
     // 删除节点
     removeGraphNodes(paths = []) {

@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const Events = require('events')
 const combine = require('multipipe')
+const fancyLog = require('fancy-log')
 const ansiColors = require('ansi-colors')
 const connector = require('../utils/connector')
 // utils
@@ -19,13 +20,14 @@ const {
     log,
     statsFilesNum,
     groupBy,
+    objectMerge,
 } = require('../utils/helper')
 // gulp-plugins
 const gulp = require('gulp')
 const { src, dest, series, parallel, watch } = gulp
 const gulpIf = require('gulp-if')
 const gulpProgress = rqp('gulp-progress')
-const gulpFileContext = rqp('gulp-file-context')
+const gulpContext = rqp('gulp-context')
 const gulpCompileCache = rqp('gulp-compile-cache')
 // watchers
 const sourceWatcher = require('./watcher/source-watcher')
@@ -37,20 +39,6 @@ const plugins = [],
         clean: [],
         beforeCompile: [],
         afterCompile: [],
-    },
-    invokeHook = (compiler, name, event = {}) => {
-        const handlers = hooks[name]
-
-        if (handlers.length) {
-            return runQueue.promise(handlers, (fn, next) =>
-                fn.call(compiler, {
-                    ...event,
-                    next,
-                })
-            )
-        } else {
-            return Promise.resolve()
-        }
     },
     pkgInfo = require('../../package.json') // 包信息
 
@@ -73,6 +61,7 @@ class Compiler extends Events {
         }
         this._inited = this._init()
     }
+
     // 初始化
     _init() {
         // 运行中
@@ -94,6 +83,8 @@ class Compiler extends Events {
         this.npmList = this.options.npmList = resolveNpmList(this.options)
         // 版本号
         this._version = pkgInfo.version
+        // hooks
+        this._hooks = objectMerge({}, hooks)
 
         // normalize alias
         const { alias } = this.options
@@ -121,7 +112,7 @@ class Compiler extends Events {
         this._internalTasks = {}
 
         // init hooks
-        return invokeHook(this, 'init')
+        return this.fire('init')
     }
     // 标准化任务配置对象
     _normalizeTaskConfig(config) {
@@ -131,8 +122,8 @@ class Compiler extends Events {
         }
 
         var {
-            test,
-            use,
+            test, // glob | glob[] | { glob, options}
+            use, // plugin[]
             compileAncestor = false, // 是否联动更新上游模块
             cache = true, // 是否缓存
             output = true, // 是否输出
@@ -147,14 +138,24 @@ class Compiler extends Events {
             throw new Error(`use is required. ${JSON.stringify(config)}`)
         }
 
+        // test标准化
         if (typeof test === 'function') {
             test = test(this.options)
         }
-        // 统一添加sourceDir前缀
-        if (type(test) !== 'array') {
-            test = [test]
+        if (type(test) !== 'object') {
+            test = {
+                globs: test,
+                options: {},
+            }
         }
-        test = test.map((v) => toGlobPath(path.resolve(sourceDir, v)))
+        // globs统一添加sourceDir前缀
+        if (type(test.globs) !== 'array') {
+            test.globs = [test.globs]
+        }
+        test.globs = test.globs.map((v) =>
+            toGlobPath(path.resolve(sourceDir, v))
+        )
+        test.options = Object.assign({}, test.options)
 
         // use: []
         if (type(use) !== 'array') {
@@ -192,13 +193,14 @@ class Compiler extends Events {
     _setCompileContext() {
         let compileContext = {},
             keys = [
-                // props
+                // from instance
                 ...Object.keys(this),
-                // plugin methods
+                // from plugins
                 ...Object.keys(Object.getPrototypeOf(this)),
-                // internal methods
+                // internal methods (class methods是不可枚举的)
                 'wgsResolve',
                 'createFileContext',
+                'tap',
             ],
             c = this
 
@@ -230,7 +232,7 @@ class Compiler extends Events {
             .then(() => this.cleanExpired())
             .then((expired) => {
                 _expired = expired
-                return invokeHook(this, 'clean', { expired })
+                return this.fire('clean', { expired })
             })
             .then(() => {
                 // 清理依赖图
@@ -244,10 +246,12 @@ class Compiler extends Events {
     }
     // 执行task
     _runTasks(userTasks = {}, internalTasks = {}) {
+        let session = this.createCompileSession()
+
         return (
-            // init hooks
+            // init-hook
             this._inited
-                // 进度统计
+                // progress
                 .then(() => {
                     let paths = [],
                         num = 0
@@ -257,7 +261,7 @@ class Compiler extends Events {
                         .forEach((v) => {
                             if (v.test) {
                                 // 配置型任务
-                                paths.push(v.test)
+                                paths.push(v.test.globs)
                             } else {
                                 // func任务
                                 num++
@@ -269,15 +273,15 @@ class Compiler extends Events {
 
                     progress.append(statsFilesNum(paths) + num)
                 })
-                // before hooks
-                .then(() => invokeHook(this, 'beforeCompile'))
-                // compiling
+                // before-hook
+                .then(() => this.fire('beforeCompile', { session }))
+                // compile
                 .then(() => {
                     let internalGulpTasks = Object.values(internalTasks).map(
-                            (v) => this.createGulpTask(v)
+                            (v) => this.createGulpTask(v, session)
                         ),
                         userGulpTasks = Object.values(userTasks).map((v) =>
-                            this.createGulpTask(v)
+                            this.createGulpTask(v, session)
                         ),
                         topTasks = []
 
@@ -308,13 +312,89 @@ class Compiler extends Events {
                             : resolve()
                     })
                 })
-                // after hooks
-                .then(() => invokeHook(this, 'afterCompile'))
+                // after-hook
+                .then(() => this.fire('afterCompile', { session }))
+                // end
+                .then(() => {
+                    // 当前编译会话结束
+                    session.endTime = Date.now()
+                    session.totalCache = this._cacheTimes
+                    session.totalHit = this._hitTimes
+
+                    let elapsedTime = session.endTime - session.startTime
+                    // prettier-ignore
+                    console.log('\n')
+                    fancyLog(
+                        ansiColors.cyan(
+                            `Compiling Time: ${
+                                elapsedTime < 10
+                                    ? '<10ms'
+                                    : (elapsedTime / 1000).toFixed(2) + 's'
+                            } `
+                        )
+                    )
+
+                    // 适当等待最后一次文件写入
+                    setTimeout(() => {
+                        var expiredNum = this._expiredNum,
+                            fileWTS = this._fw,
+                            hitTimes = this._hitTimes,
+                            cacheTimes = this._cacheTimes,
+                            cacheWTS = this._cw,
+                            reverseTimes = this._reverseTimes,
+                            depWTS = this._gw
+
+                        // 打印统计信息
+                        var stats = `${expiredNum} file expired, save ${fileWTS} sec. ${hitTimes}/${session.total} file skipped, save ${cacheWTS} sec. graph reverse ${reverseTimes} sec, save ${depWTS} sec.`
+                        fancyLog(ansiColors.cyan(stats))
+                    }, 1000)
+
+                    return session
+                })
                 .finally(() => {
                     // unlock
                     this.compiling = false
                 })
         )
+    }
+    // 编译上游模块
+    _compileUpStream(session) {
+        // @bugfix 由于缓存原因，部分依赖发生变动的模块需要重新编译
+        if (session.totalHit > 0) {
+            let downs = new Set(session.files),
+                ups = this.traceUpstreamModules(session.files)
+
+            this.incrementCompile(
+                ups.filter((x) => !downs.has(x)),
+                false
+            )
+        }
+    }
+
+    // 添加事件
+    tap(name, handler) {
+        let list = this._hooks[name]
+
+        if (list) {
+            list.push(handler)
+        }
+    }
+    // 触发事件
+    fire(name, payload = {}) {
+        const handlers = this._hooks[name]
+
+        if (handlers.length) {
+            if (type(payload) !== 'object') {
+                payload = { payload }
+            }
+
+            return runQueue.promise(handlers, (fn, next) => {
+                payload.next = next
+                fn.call(this, payload)
+            })
+        } else {
+            return Promise.resolve()
+        }
     }
     // 查询数据库
     query(key, defaults) {
@@ -361,6 +441,7 @@ class Compiler extends Events {
             .then(() => this._setCompileContext())
             .then(() => this._clean())
             .then(() => this._runTasks(this._userTasks, this._internalTasks))
+            .then((session) => this._compileUpStream(session))
             .finally(() => (this.running = false))
     }
     // 编译并watch
@@ -376,6 +457,7 @@ class Compiler extends Events {
             .then(() => this._setCompileContext())
             .then(() => this._clean())
             .then(() => this._runTasks(this._userTasks, this._internalTasks))
+            .then((session) => this._compileUpStream(session))
             .then(() => {
                 // watching
                 this._watchers.push(sourceWatcher(this))
@@ -389,9 +471,7 @@ class Compiler extends Events {
         this._watchers = []
     }
     // 创建gulpTask
-    createGulpTask(config) {
-        const taskCtx = this.createTaskContext()
-
+    createGulpTask(config, context) {
         // functional-task
         if (typeof config === 'function') {
             return series(
@@ -408,22 +488,22 @@ class Compiler extends Events {
         // stream-task
         const { test, use, cache, output } = config
         const { cacheDir, outputDir, sourceDir } = this.options
-        const paths = test,
-            transformer = combine(
-                ...use.map(([name, options]) => rqp(name)(options))
-            )
+        const transformer = combine(
+            ...use.map(([name, options]) => rqp(name)(options))
+        )
 
         return function () {
             return (
-                src(paths, {
-                    base: sourceDir,
+                src(test.globs, {
+                    ...test.options,
+                    base: sourceDir, // 统一base
                 })
                     // 上下文注入
-                    .pipe(gulpFileContext(taskCtx))
+                    .pipe(gulpContext(context))
                     // 编译缓存
                     .pipe(
                         gulpIf(
-                            cache,
+                            cache, // 使用缓存
                             gulpCompileCache({
                                 cacheDir, // 缓存文件存放位置
                                 outputDir, // 输出目录
@@ -440,11 +520,11 @@ class Compiler extends Events {
         }
     }
     // 获取任务配置对象
-    getTaskConfig(taskType, overrides) {
+    getTaskConfig(taskType, clone = false) {
         var result = this._internalTasks[taskType] || this._userTasks[taskType]
-        // clone
-        if (result) {
-            result = Object.assign({}, result, overrides)
+
+        if (clone && result) {
+            result = objectMerge({}, result)
         }
 
         return result
@@ -460,40 +540,31 @@ class Compiler extends Events {
         return t
     }
     // 增量编译
-    incrementCompile(filePaths = []) {
+    incrementCompile(filePaths = [], trace = true) {
         if (!Array.isArray(filePaths)) {
             filePaths = [filePaths]
         }
-
-        let { sourceDir } = this.options
-        filePaths.forEach((p) => {
-            let taskType = this.getTaskType(p),
-                taskConfig = this.getTaskConfig(taskType)
-
-            // 需更新上游
-            if (taskConfig && taskConfig.compileAncestor) {
-                filePaths.push(
-                    ...this.traceReverseDep(p).map((v) =>
-                        path.join(sourceDir + v)
-                    )
-                )
-            }
-        })
         // 无需编译
         if (filePaths.length <= 0) return
-        // 编译任务集合
+
+        // 需要溯源
+        if (trace) {
+            filePaths.push(...this.traceUpstreamModules(filePaths))
+        }
+        // 去重
+        filePaths = Array.from(new Set(filePaths))
+        // 创建编译任务
         let tasks = groupBy(filePaths, (v) => this.getTaskType(v))
         tasks = Object.entries(tasks).reduce((acc, [t, paths]) => {
-            let config = this.getTaskConfig(t, {
-                test: paths,
-                cache: false, // 忽略缓存
-            })
+            let config = this.getTaskConfig(t, true)
 
             // 跳过不支持的任务
             if (!config) {
                 // prettier-ignore
                 log(ansiColors.yellow(`Compiling .${t} files is not supported!`))
             } else {
+                config.test = { globs: paths } // 目标文件
+                config.cache = false // 忽略缓存
                 acc[t] = config
             }
 
@@ -528,24 +599,59 @@ class Compiler extends Events {
 
         return d
     }
-    // 创建文件上下文
-    createFileContext(file) {
+    // 创建文件级上下文
+    createFileContext(file, session) {
         let fileContext = Object.create(this._compileContext)
 
         Object.assign(fileContext, {
             originalPath: file.path,
             customDeps: [], // 自定义依赖
             depended: false,
+            session,
         })
 
         return fileContext
     }
-    // 创建task上下文
-    createTaskContext() {
-        let taskContext = Object.create(this._compileContext)
+    // 创建compile会话对象
+    createCompileSession() {
+        let session = Object.create(this._compileContext)
 
-        return taskContext
+        Object.assign(session, {
+            startTime: Date.now(), // 编译开始时间
+            endTime: -1, // 编译结束时间
+            files: [], // 编译文件列表
+            total: 0, // 总文件数
+            totalCache: 0, // 缓存总数
+            totalHit: 0, // 缓存命中数
+        })
+
+        return session
     }
+    // 获取上游模块路径
+    traceUpstreamModules(filePaths) {
+        let ups = [],
+            sourceDir = this.options.sourceDir
+
+        if (!Array.isArray(filePaths)) {
+            filePaths = [filePaths]
+        }
+
+        filePaths.forEach((p) => {
+            let taskType = this.getTaskType(p),
+                taskConfig = this.getTaskConfig(taskType)
+
+            if (taskConfig && taskConfig.compileAncestor) {
+                ups.push(
+                    ...this.traceReverseDep(p).map((v) =>
+                        path.join(sourceDir + v)
+                    )
+                )
+            }
+        })
+
+        return ups
+    }
+
     // 插件安装
     static use(plugin) {
         if (plugins.indexOf(plugin) >= 0) return

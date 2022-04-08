@@ -16,6 +16,7 @@ node_modules
 build/env.js
 package-lock.json
 yo-*.*
+temp
 
 # Log files
 npm-debug.log*

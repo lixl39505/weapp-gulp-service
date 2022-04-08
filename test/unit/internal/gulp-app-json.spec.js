@@ -3,7 +3,7 @@ const { importFromStringSync } = require('module-from-string')
 const { fixture, stream, afterN } = require('~h')
 const compilerContext = require('~f/compiler-context')
 //
-const gulpFileContext = require('internal/gulp-file-context')
+const gulpContext = require('internal/gulp-context')
 const gulpJson = require('internal/gulp-json')
 //
 let context = {}
@@ -21,7 +21,7 @@ describe('gulp-app-json', function () {
             })
 
         src([fixture('json/app.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpJson(context.options))
             .pipe(
                 stream(function (file, enc, cb) {

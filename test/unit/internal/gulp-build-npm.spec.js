@@ -10,7 +10,7 @@ let wxToolStub = {},
     cmdStub = {},
     fsStub = {},
     context = {},
-    gulpFileContext = require('internal/gulp-file-context'),
+    gulpContext = require('internal/gulp-context'),
     gulpBuildNpm
 
 describe('gulp-build-npm', function () {
@@ -84,7 +84,7 @@ describe('gulp-build-npm', function () {
         process.env.WE_CLI = '/user/cli'
         // run
         src([fixture('json/package.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpBuildNpm({ project: context.baseDir }))
             .pipe(
                 stream(function (file, enc, cb) {
@@ -103,7 +103,7 @@ describe('gulp-build-npm', function () {
         process.env.WE_CLI = '/user/cli'
         // run
         src([fixture('json/package.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpBuildNpm({ project: context.baseDir }))
             .pipe(
                 stream(function (file, enc, cb) {
@@ -125,7 +125,7 @@ describe('gulp-build-npm', function () {
 
     it('wx build npm fail, no project', function (done) {
         src([fixture('json/package.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpBuildNpm())
             .on('error', function (err) {
                 err.toString().should.equal(
@@ -138,7 +138,7 @@ describe('gulp-build-npm', function () {
 
     it('wx build npm fail, no CLI / no PRIVATE_KEY', function (done) {
         src([fixture('json/package.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpBuildNpm({ project: context.baseDir }))
             .on('error', function (err) {
                 err.message.should.include(
@@ -154,7 +154,7 @@ describe('gulp-build-npm', function () {
 
     it('wx build npm success when tolerant', function (done) {
         src([fixture('json/package.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(
                 gulpBuildNpm({
                     project: context.baseDir,
@@ -175,7 +175,7 @@ describe('gulp-build-npm', function () {
         process.env.WE_CLI = '/user/cli'
 
         src([fixture('json/package.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpBuildNpm({ project: context.baseDir }))
             .pipe(
                 stream(function (file) {

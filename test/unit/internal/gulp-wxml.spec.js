@@ -2,7 +2,7 @@ const { src } = require('gulp')
 const { minify, fixture, stream } = require('~h')
 const compilerContext = require('~f/compiler-context')
 //
-const gulpFileContext = require('internal/gulp-file-context')
+const gulpContext = require('internal/gulp-context')
 const gulpWxml = require('internal/gulp-wxml')
 //
 let context = {}
@@ -15,7 +15,7 @@ describe('gulp-wxml', function () {
 
     it('trans', function (done) {
         src([fixture('wxml/index.wxml')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpWxml(context.options))
             .pipe(
                 stream(function (file, enc, cb) {

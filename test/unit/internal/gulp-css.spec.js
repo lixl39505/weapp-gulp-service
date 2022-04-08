@@ -2,7 +2,7 @@ const { src } = require('gulp')
 const { fixture, minify, stream } = require('~h')
 const compilerContext = require('~f/compiler-context')
 //
-const gulpFileContext = require('internal/gulp-file-context')
+const gulpContext = require('internal/gulp-context')
 const gulpCss = require('internal/gulp-css')
 //
 let context = {}
@@ -15,7 +15,7 @@ describe('gulp-css', function () {
 
     it('trans', function (done) {
         src([fixture('css/index.css')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpCss(context.options))
             .pipe(
                 stream(function (file, enc, cb) {

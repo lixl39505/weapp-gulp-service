@@ -5,7 +5,7 @@ const { src } = require('gulp')
 const { fixture, minify, stream } = require('~h')
 const compilerContext = require('~f/compiler-context')
 //
-const gulpFileContext = require('internal/gulp-file-context')
+const gulpContext = require('internal/gulp-context')
 const gulpNpmDep = require('internal/gulp-npm-dep')
 //
 let context = {}
@@ -23,7 +23,7 @@ describe('gulp-npm-dep', function () {
             '/Applications/wechatwebdevtools.app/Contents/MacOS/cli'
 
         src([fixture('json/package.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpNpmDep({ packNpmRelationList: context.npmList }))
             .pipe(
                 stream(function (file, enc, cb) {
@@ -85,7 +85,7 @@ describe('gulp-npm-dep', function () {
         sinon.replace(fs, 'statSync', sinon.fake.returns(fstat))
 
         src([fixture('json/package.json')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpNpmDep({ packNpmRelationList: context.npmList }))
             .pipe(
                 stream(function (file, enc, cb) {

@@ -11,7 +11,6 @@ module.exports = function (options) {
         }
         var { packNpmRelationList = [] } = options
         var content = file.contents.toString('utf8'),
-            now = new Date(),
             pkg,
             nodeStat,
             miniStat
@@ -22,10 +21,11 @@ module.exports = function (options) {
 
             miniPath =
                 miniPath && path.resolve(miniPath.output, 'miniprogram_npm')
+
             nodeStat = miniStat = {
-                birthtime: now,
-                ctime: now,
-                mtime: now,
+                birthtime: new Date(0),
+                ctime: new Date(0),
+                mtime: new Date(0),
             }
             // packageJson
             pkg = JSON.parse(content)

@@ -366,6 +366,23 @@ function log() {
     fancyLog.apply(false, data)
 }
 
+// 从数组中删除元素
+function remove(arr, target) {
+    var idx = -1
+
+    if (type(target) === 'function') {
+        idx = arr.findIndex(target)
+    } else {
+        idx = arr.indexOf(target)
+    }
+
+    if (idx >= 0) {
+        return arr.splice(idx, 1)
+    }
+
+    return null
+}
+
 module.exports = {
     type,
     isPojo,
@@ -384,4 +401,5 @@ module.exports = {
     partial,
     promisify,
     log,
+    remove,
 }

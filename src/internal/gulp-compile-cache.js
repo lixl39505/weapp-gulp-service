@@ -13,13 +13,15 @@ module.exports = function gulpCompileCache(options = {}) {
         }
 
         try {
-            const { checkFileCached } = file.context
+            const { checkFileCached, session } = file.context
 
             if (checkFileCached(file)) {
                 // 命中回调
                 hit(file)
                 // 终止流
                 return next(null, null)
+            } else {
+                session.files.push(file.path)
             }
         } catch (e) {
             throw GulpError(file, e)

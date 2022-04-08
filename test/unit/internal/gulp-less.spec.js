@@ -3,7 +3,7 @@ const { src } = require('gulp')
 const { fixture, minify } = require('~h')
 const compilerContext = require('~f/compiler-context')
 //
-const gulpFileContext = require('internal/gulp-file-context')
+const gulpContext = require('internal/gulp-context')
 const gulpLess = require('internal/gulp-less')
 //
 let context = {}
@@ -16,7 +16,7 @@ describe('gulp-less', function () {
     
     it('trans', function (done) {
         src([fixture('less/index.less')])
-            .pipe(gulpFileContext(context))
+            .pipe(gulpContext(context))
             .pipe(gulpLess(context.options))
             .pipe(
                 through.obj(function (file, enc, cb) {
