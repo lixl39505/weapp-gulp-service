@@ -44,6 +44,8 @@ function resolveOptions(cmdOptions) {
         options.callback.call(null, options)
     }
 
+    console.log(options)
+
     return options
 }
 
