@@ -5,14 +5,15 @@ weapp-gulp-service 是一款基于 gulp 实现的微信小程序预编译开发�
 语法增强：
 
 1. 支持 less
-2. 支持 px 转 rpx
-3. 支持图片转 base64
-4. 支持路径 alias
+2. 支持 px 自动转 rpx
+3. 支持本地图片转 base64
+4. 支持路径别名 alias
 5. 支持设置环境变量
-6. 支持 json5 语法解
+6. 支持 json5 语法
 7. 扩展 app.json，支持表达力更好的路由写法
-8. 支持自动构建 npm、上传代码
-9. 支持 .vue 单文件开发
+8. 支持 .vue 单文件开发
+9. 支持自动构建 npm
+10. 支持命令行上传代码
 
 工具特性：
 
@@ -39,7 +40,7 @@ npm i weapp-gulp-service -D
 npx wgs
 ```
 
-另外可复制 templates/weapp-project 做为项目模版。
+项目 Demo 参见 [weapp-project](https://github.com/pixelsLee/weapp-gulp-service/tree/main/templates/weapp-project) （可直接作为开发模版）。
 
 ## 详细说明
 
