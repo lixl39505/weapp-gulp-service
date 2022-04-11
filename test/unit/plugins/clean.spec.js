@@ -47,11 +47,7 @@ describe('plugin-compile-cache', function () {
 
     it('new file', function () {
         // prepare
-        currentFiles = [
-            fixture('js/new1.js'),
-            fixture('js/new2.js'),
-            fixture('js/new3.vue'),
-        ]
+        currentFiles = ['/js/new1.js', '/js/new2.js', '/js/new3.vue']
 
         //
         Compiler.installHook.called.should.equal(true)
@@ -70,23 +66,23 @@ describe('plugin-compile-cache', function () {
         isNew.should.equal(true)
 
         context.cleanExpired()
-        context._fileList.should.equal(currentFiles)
+        context._fileList.should.eql(currentFiles)
         context.query('fileList').should.eql(currentFiles)
     })
 
     it('clean up expired files', function (done) {
         // prepare
         lastFiles = [
-            fixture('js/bar1.js'),
+            '/js/bar1.js',
             // expired
-            fixture('css/bar2.css'),
-            fixture('sfc/bar3.vue'),
+            '/css/bar2.css',
+            '/sfc/bar3.vue',
         ]
         currentFiles = [
-            fixture('js/bar1.js'),
+            '/js/bar1.js',
             //
-            fixture('css/new1.css'),
-            fixture('sfc/new2.vue'),
+            '/css/new1.css',
+            '/sfc/new2.vue',
         ]
         context._fileList = [...lastFiles]
 
@@ -94,10 +90,7 @@ describe('plugin-compile-cache', function () {
         context
             .cleanExpired()
             .then((expired) => {
-                expired.should.eql([
-                    fixture('css/bar2.css'),
-                    fixture('sfc/bar3.vue'),
-                ])
+                expired.should.eql(['/css/bar2.css', '/sfc/bar3.vue'])
 
                 context.getOutputPath.firstCall.returnValue.should.eql([
                     toGlobPath(path.join(context.baseDir, 'dist/css/bar2.*')),

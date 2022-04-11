@@ -13,6 +13,8 @@ module.exports = function () {
         output: 'dist',
         // 源码目录
         source: 'src',
+        // 忽略文件
+        ignore: [],
         // 图片类型
         imgType: ['jpg', 'png', 'svg', 'webp', 'gif'],
         // 路径别名

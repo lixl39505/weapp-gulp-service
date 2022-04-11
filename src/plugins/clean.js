@@ -31,12 +31,14 @@ module.exports = function (Compiler) {
         },
         // 清理历史编译文件
         cleanExpired() {
-            const { sourceDir, baseDir } = this
-            const current = fastGlob.sync([
-                    `${toGlobPath(sourceDir)}/**`,
-                    '!**/node_modules/**',
-                ]), // 当前文件列表
+            const { sourceDir, outputDir, baseDir } = this
+            let current = fastGlob.sync([`${toGlobPath(sourceDir)}/**`], {
+                    ignore: this._ignore,
+                }), // 当前文件列表
                 expired = []
+
+            // 将sourceDir视为根目录
+            current = current.map((v) => v.replace(sourceDir, ''))
 
             // 寻找已经被删除的文件
             this._fileList.forEach((v) => {

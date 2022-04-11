@@ -23,9 +23,9 @@ const hooks = {
         this._hitTimes = 0
         this._cacheTimes = 0
         this._cw = 0
-        this._outputDirExist = fs.existsSync(this.outputDir)
+        //
         this._lastVersion = this.query('version')
-        if (this._lastVersion) fancyLog('_lastVersion: ' + this._lastVersion)
+        this._isOutputDirExist = fs.existsSync(this.outputDir)
 
         next()
     },
@@ -34,6 +34,7 @@ const hooks = {
         if (this._lastVersion != this._version) {
             this.save('version', this._version)
         }
+
         next()
     },
 }
@@ -64,7 +65,7 @@ const methods = {
         // expired 版本号变更 | 输出目录不存在 | 没有历史记录
         if (
             this._lastVersion !== this._version ||
-            !this._outputDirExist ||
+            this._isOutputDirExist === false ||
             !last
         ) {
             return false
@@ -89,6 +90,7 @@ const methods = {
                 // @bugfix process.env只能是字符串
                 return (
                     v.startsWith(`${path.sep}.env`) &&
+                    lastEnv[name] &&
                     lastEnv[name].toString() !== currentEnv[name]
                 )
             })

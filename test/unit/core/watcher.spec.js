@@ -32,7 +32,12 @@ describe('watcher', function () {
             },
             getTaskConfig(taskName) {
                 return {
-                    test: [taskName],
+                    test: {
+                        globs: [taskName],
+                        options: {
+                            ignore: [],
+                        },
+                    },
                 }
             },
             createGulpTask(taskConfig) {

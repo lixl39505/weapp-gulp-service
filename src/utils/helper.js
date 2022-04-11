@@ -240,10 +240,10 @@ function resolveNpmList(options) {
 }
 
 // glob 统计文件数量
-function statsFilesNum(path) {
+function statsFilesNum(path, options) {
     let patterns = Array.isArray(path) ? path : [path]
 
-    return fastGlob.sync(patterns.flat().map((v) => toGlobPath(v))).length
+    return fastGlob.sync(patterns.flat(), options).length
 }
 
 // 数组分组
@@ -383,6 +383,11 @@ function remove(arr, target) {
     return null
 }
 
+// 数组去重
+function dedup(arr) {
+    return Array.from(new Set(arr))
+}
+
 module.exports = {
     type,
     isPojo,
@@ -402,4 +407,5 @@ module.exports = {
     promisify,
     log,
     remove,
+    dedup,
 }

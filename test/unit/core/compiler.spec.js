@@ -267,6 +267,11 @@ describe('compiler', function () {
                 .run()
                 // check tasks
                 .then(() => {
+                    let ignore = [
+                        '/Users/july/workspace/open-source/wgs/test/dist/**',
+                        '/Users/july/workspace/open-source/wgs/test/.wgs/**',
+                        '**/node_modules/**',
+                    ]
                     // js task
                     compiler._userTasks.js.should.deep.include({
                         test: {
@@ -278,7 +283,7 @@ describe('compiler', function () {
                                     )
                                 ),
                             ],
-                            options: {},
+                            options: { ignore },
                         },
                         compileAncestor: false,
                         cache: true,
@@ -300,7 +305,7 @@ describe('compiler', function () {
                                     )
                                 ),
                             ],
-                            options: {},
+                            options: { ignore },
                         },
                         compileAncestor: true,
                         cache: true,
@@ -324,7 +329,7 @@ describe('compiler', function () {
                                     )
                                 ),
                             ],
-                            options: {},
+                            options: { ignore },
                         },
                         compileAncestor: false,
                         cache: true,
@@ -341,6 +346,7 @@ describe('compiler', function () {
                             globs: [toGlobPath(fixture('json/package.json'))],
                             options: {
                                 allowEmpty: true,
+                                ignore,
                             },
                         },
                         compileAncestor: false,

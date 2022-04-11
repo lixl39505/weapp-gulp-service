@@ -34,17 +34,20 @@ function resolveOptions(cmdOptions) {
         options.app || {}
     )
 
-    // 最终options
+    // merge options
     options.config = configFile
     Object.assign(options, cmdOptions)
     options = objectMerge(defaults(), options)
+
+    // normalize
+    if (options.ignore && !Array.isArray(options.ignore)) {
+        options.ignore = [options.ignore]
+    }
 
     // 支持回调
     if (options.callback) {
         options.callback.call(null, options)
     }
-
-    console.log(options)
 
     return options
 }

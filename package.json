@@ -1,10 +1,11 @@
 {
     "name": "weapp-gulp-service",
     "version": "1.0.2",
-    "description": "weapp precompile workflow",
+    "description": "微信小程序预编译工作流 & weapp precompile workflow",
     "main": "src/index.js",
     "bin": {
-        "weapp-gulp-service": "src/bin/cli.js"
+        "weapp-gulp-service": "src/bin/cli.js",
+        "wgs": "src/bin/cli.js"
     },
     "files": [
         "src/",
@@ -25,11 +26,11 @@
         "url": "https://github.com/pixelsLee/weapp-gulp-service.git"
     },
     "keywords": [
-        "gulp",
-        "weapp",
+        "小程序",
+        "wx",
+        "miniprogram",
         "alias",
-        "precompile",
-        "workflow"
+        "compile"
     ],
     "author": "pixelsLee <pixelslee@foxmail.com>",
     "license": "MIT",

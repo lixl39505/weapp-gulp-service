@@ -7,7 +7,11 @@ module.exports = (compiler) => {
         watcher = compiler.createWatcher(pkgTask.test.globs)
 
     watcher.on('all', () => {
-        progress.append(statsFilesNum(pkgTask.test.globs))
+        progress.append(
+            statsFilesNum(pkgTask.test.globs, {
+                ignore: pkgTask.test.options.ignore,
+            })
+        )
         compiler.nextTask(series(compiler.createGulpTask(pkgTask)))
     })
 

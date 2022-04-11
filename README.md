@@ -28,7 +28,7 @@ weapp-gulp-service 是一款基于 gulp 实现的微信小程序预编译开发�
 ```bash
 npm i weapp-gulp-service -g
 # 项目根目录执行
-weapp-gulp-service --config /user/workspace/xx/weapp.config.js
+wgs --config /user/workspace/xx/weapp.config.js
 ```
 
 也可以局部安装并使用：
@@ -36,7 +36,7 @@ weapp-gulp-service --config /user/workspace/xx/weapp.config.js
 ```bash
 npm i weapp-gulp-service -D
 # 项目根目录执行
-npx weapp-gulp-service
+npx wgs
 ```
 
 另外可复制 templates/weapp-project 做为项目模版。
@@ -52,7 +52,7 @@ npx weapp-gulp-service
 编译并 watching。
 
 ```bash
-Usage: weapp-gulp-service serve [options]
+Usage: wgs serve [options]
 
 Options:
   -c, --config <string>  配置文件，默认为weapp.config.js
@@ -61,14 +61,14 @@ Options:
   -h, --help             display help for command
 ```
 
-ps：serve 名称可省略，即 `weapp-gulp-service [options]`
+ps：serve 名称可省略，即 `wgs [options]`
 
 ### 单独打包
 
 只编译。
 
 ```bash
-Usage: weapp-gulp-service build [options]
+Usage: wgs build [options]
 
 Options:
   -m, --mode <string>    编译环境名称，默认为production
@@ -81,7 +81,7 @@ Options:
 等同微信开发者工具中的【构建 npm】
 
 ```bash
-Usage: weapp-gulp-service build:npm [options]
+Usage: wgs build:npm [options]
 
 Options:
   -m, --mode <string>    编译环境名称，默认为production
@@ -94,7 +94,7 @@ Options:
 等同微信开发者工具中的【上传代码】。
 
 ```bash
-Usage: weapp-gulp-service upload [options] [desc]
+Usage: wgs upload [options] [desc]
 
 Options:
   -v, --ver <string>     版本号，必填

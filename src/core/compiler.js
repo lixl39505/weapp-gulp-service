@@ -21,6 +21,7 @@ const {
     statsFilesNum,
     groupBy,
     objectMerge,
+    dedup,
 } = require('../utils/helper')
 // gulp-plugins
 const gulp = require('gulp')
@@ -81,10 +82,6 @@ class Compiler extends Events {
         this.outputDir = this.options.outputDir = path.resolve(this.baseDir, this.options.output)
         // npm构建配置
         this.npmList = this.options.npmList = resolveNpmList(this.options)
-        // 版本号
-        this._version = pkgInfo.version
-        // hooks
-        this._hooks = objectMerge({}, hooks)
 
         // normalize alias
         const { alias } = this.options
@@ -104,6 +101,16 @@ class Compiler extends Events {
         }
 
         // private data
+        this._ignore = this.options.ignore || [] // 全局忽略文件
+        this._ignore = dedup(
+            this._ignore.concat([
+                `${toGlobPath(this.outputDir)}/**`,
+                `${toGlobPath(this.cacheDir)}/**`,
+                '**/node_modules/**',
+            ])
+        )
+        this._version = pkgInfo.version // 版本号
+        this._hooks = objectMerge({}, hooks) // hooks
         this._db = connector({
             dir: this.cacheDir,
         })
@@ -121,14 +128,13 @@ class Compiler extends Events {
             return config
         }
 
-        var {
+        let {
             test, // glob | glob[] | { glob, options}
             use, // plugin[]
             compileAncestor = false, // 是否联动更新上游模块
             cache = true, // 是否缓存
             output = true, // 是否输出
         } = config
-        var sourceDir = this.sourceDir
 
         // required validation
         if (!test) {
@@ -138,25 +144,29 @@ class Compiler extends Events {
             throw new Error(`use is required. ${JSON.stringify(config)}`)
         }
 
-        // test标准化
         if (typeof test === 'function') {
             test = test(this.options)
         }
+        // test标准化
         if (type(test) !== 'object') {
             test = {
                 globs: test,
                 options: {},
             }
         }
-        // globs统一添加sourceDir前缀
+        // globs统一为数组
         if (type(test.globs) !== 'array') {
             test.globs = [test.globs]
         }
+        // globs统一添加sourceDir前缀
         test.globs = test.globs.map((v) =>
-            toGlobPath(path.resolve(sourceDir, v))
+            toGlobPath(path.resolve(this.sourceDir, v))
         )
         test.options = Object.assign({}, test.options)
-
+        // set ignore
+        let ignore = test.options.ignore || []
+        if (!Array.isArray(ignore)) ignore = [ignore]
+        test.options.ignore = dedup(ignore.concat(this._ignore))
         // use: []
         if (type(use) !== 'array') {
             use = [use]
@@ -254,6 +264,7 @@ class Compiler extends Events {
                 // progress
                 .then(() => {
                     let paths = [],
+                        ignore = [],
                         num = 0
 
                     Object.values(userTasks)
@@ -262,8 +273,9 @@ class Compiler extends Events {
                             if (v.test) {
                                 // 配置型任务
                                 paths.push(v.test.globs)
+                                ignore.push(...v.test.options.ignore)
                             } else {
-                                // func任务
+                                // 函数式任务
                                 num++
                             }
                         })
@@ -271,7 +283,11 @@ class Compiler extends Events {
                     // lock
                     this.compiling = true
 
-                    progress.append(statsFilesNum(paths) + num)
+                    progress.append(
+                        statsFilesNum(paths, {
+                            ignore: dedup(ignore),
+                        }) + num
+                    )
                 })
                 // before-hook
                 .then(() => this.fire('beforeCompile', { session }))
@@ -413,10 +429,16 @@ class Compiler extends Events {
         }
 
         log(ansiColors.white(`watching ${paths}`))
-        let watcher = watch(
-            paths,
-            Object.assign({ ignored: /[\/\\]\./ }, options)
-        )
+
+        // normalize options
+        options = objectMerge({}, options)
+        // 忽略outputDir以及.env.*文件
+        let ignored = options.ignored || []
+        if (!Array.isArray(ignored)) ignored = [ignored]
+        ignored.push('.env', '.env.*', ...this._ignore)
+        options.ignored = dedup(ignored)
+
+        let watcher = watch(paths, options)
 
         // catch chokidar error
         watcher.on('error', logError)
@@ -552,7 +574,7 @@ class Compiler extends Events {
             filePaths.push(...this.traceUpstreamModules(filePaths))
         }
         // 去重
-        filePaths = Array.from(new Set(filePaths))
+        filePaths = dedup(filePaths)
         // 创建编译任务
         let tasks = groupBy(filePaths, (v) => this.getTaskType(v))
         tasks = Object.entries(tasks).reduce((acc, [t, paths]) => {
@@ -563,7 +585,7 @@ class Compiler extends Events {
                 // prettier-ignore
                 log(ansiColors.yellow(`Compiling .${t} files is not supported!`))
             } else {
-                config.test = { globs: paths } // 目标文件
+                config.test.globs = paths // 目标文件
                 config.cache = false // 忽略缓存
                 acc[t] = config
             }
