@@ -7,7 +7,7 @@ const rqp = require('../core/require-piper')
 // .mp文件
 module.exports = function (options = {}) {
     return combine(
-        gulpSfc(),
+        gulpSfc(options.mp),
         gulpIf(function (file) {
             return file.extname == '.json'
         }, rqp('gulp-json')(options)),

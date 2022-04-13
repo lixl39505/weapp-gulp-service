@@ -39,6 +39,13 @@ module.exports = function () {
             deleteAfterEncoding: false, // 转换后删除图片文件（慎用，如果一张图片被多次引用，则只有第一次能成功转换）
             debug: false, // 是否开启调试
         },
+        // 单文件编译配置
+        mp: {
+            tagAlias: {
+                div: 'view',
+                span: 'text',
+            },
+        },
         // 任务配置
         tasks: {
             wxml: {

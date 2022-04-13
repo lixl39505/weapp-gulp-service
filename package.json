@@ -47,7 +47,7 @@
         "aggregate-error": "^3.1.0",
         "ansi-colors": "^4.1.1",
         "camelcase": "^6.0.0",
-        "cheerio": "^1.0.0-rc.5",
+        "cheerio": "^1.0.0-rc.10",
         "cli-progress": "^3.8.2",
         "commander": "^5.1.0",
         "core-js": "^3.6.5",
