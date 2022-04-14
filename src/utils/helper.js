@@ -4,6 +4,7 @@ const ini = require('ini')
 const { promisify } = require('util')
 const fastGlob = require('fast-glob')
 const fancyLog = require('fancy-log')
+const crypto = require('crypto')
 
 // 返回对象类型
 function type(obj) {
@@ -388,6 +389,11 @@ function dedup(arr) {
     return Array.from(new Set(arr))
 }
 
+// 内容签名
+function checksum(content, algorithm = 'sha1') {
+    return crypto.createHash(algorithm).update(content).digest('hex')
+}
+
 module.exports = {
     type,
     isPojo,
@@ -408,4 +414,5 @@ module.exports = {
     log,
     remove,
     dedup,
+    checksum,
 }

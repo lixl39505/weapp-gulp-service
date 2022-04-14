@@ -15,9 +15,7 @@ module.exports = function (options = {}) {
             packNpmRelationList: npmList,
         }),
         gulpOnce({
-            context: baseDir,
             namespace: 'npmDeps',
-            file: path.join(baseDir, '.wgs/.checksums'),
             hit: () => progress.increment(),
         }),
         gulpBuildNpm({

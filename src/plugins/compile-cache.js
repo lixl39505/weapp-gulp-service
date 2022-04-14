@@ -27,6 +27,31 @@ const hooks = {
         this._lastVersion = this.query('version')
         this._isOutputDirExist = fs.existsSync(this.outputDir)
 
+        let pluginOptions = Object.assign({}, this.options)
+
+        ;[
+            'env',
+            'args',
+            'app',
+            'config',
+            'output',
+            'source',
+            'ignore',
+            'tasks',
+        ].forEach((v) => delete pluginOptions[v])
+
+        this._isOptionsChanged = this.checkFileChanged({
+            path: path.join(this.baseDir, 'config'),
+            contents: Buffer.from(
+                JSON.stringify(pluginOptions, (key, value) => {
+                    if (typeof value === 'function') {
+                        return value.toString()
+                    }
+                    return value
+                })
+            ),
+        })
+
         next()
     },
     afterCompile({ next }) {
@@ -62,16 +87,17 @@ const methods = {
         compiled[key] = current
         this.saveCompileCache()
 
-        // expired 版本号变更 | 输出目录不存在 | 没有历史记录
+        // expired 版本号变更 | 输出目录不存在 | 配置发生改变 | 没有历史记录
         if (
             this._lastVersion !== this._version ||
             this._isOutputDirExist === false ||
+            this._isOptionsChanged ||
             !last
         ) {
             return false
         }
 
-        // expired 文件修改时间更新
+        // expired 文件有修改
         if (last && last !== current) {
             return false
         }

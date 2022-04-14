@@ -88,11 +88,11 @@ module.exports = function () {
             },
             mp: {
                 test: `./**/*.mp`,
-                use: ['gulp-mp'],
+                use: ['gulp-mp', 'gulp-mp-concat'],
             },
             vue: {
                 test: `./**/*.vue`,
-                use: ['gulp-mp'],
+                use: ['gulp-mp', 'gulp-mp-concat'],
             },
         },
     }
