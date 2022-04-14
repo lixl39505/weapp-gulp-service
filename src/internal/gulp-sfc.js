@@ -20,7 +20,12 @@ module.exports = function (options) {
             // 文件路径
             var filePath = path.join(file.path, `../${stem}/`, stem)
             // 添加文件
-            const pushFile = (contents, extName) => {
+            const pushFile = (
+                contents,
+                extName,
+                sliceNum = 0,
+                sliceCount = 1
+            ) => {
                 let vf = new Vinyl({
                     base: sourceDir,
                     path: `${filePath}${extName}`,
@@ -28,7 +33,9 @@ module.exports = function (options) {
                     // 继承context
                     context: file.context,
                 })
-
+                // 分片信息
+                vf.sliceNum = sliceNum
+                vf.sliceCount = sliceCount
                 this.push(vf)
             }
 
@@ -40,14 +47,9 @@ module.exports = function (options) {
             if (wxml) pushFile(wxml, '.wxml')
             if (js) pushFile(js, '.js')
             if (json) pushFile(json ? JSON.stringify(rfs(json)) : '{}', `.json`)
-            Object.entries(style).forEach(([lang, css]) => {
-                pushFile(css, `.${lang}`)
+            style.forEach(({ lang, text }, index) => {
+                pushFile(text, `.${lang}`, index, style.length)
             })
-
-            // pushFile(wxml, '.wxml')
-            // pushFile(js, `.js`)
-            // pushFile(json ? JSON.stringify(rfs(json)) : '{}', `.json`)
-            // pushFile(css, `.${lang}`)
         } catch (e) {
             return cb(new GulpError(file, e))
         }

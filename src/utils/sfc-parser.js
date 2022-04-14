@@ -126,14 +126,17 @@ class SfcParser extends htmlparser2.Parser {
                 ontext(text) {
                     if (parser.root === 'script') {
                         if (parser.rootAttrs.name === 'json') {
-                            parser.json += text.trim()
+                            // json取最后一个
+                            parser.json = text.trim()
                         } else {
                             parser.js += text.trim()
                         }
                     } else if (parser.root === 'style') {
                         let lang = parser.rootAttrs.lang || 'css'
-                        parser.style[lang] =
-                            (parser.style[lang] || '') + text.trim()
+                        parser.style.push({
+                            lang,
+                            text: text.trim(),
+                        })
                     } else if (parser.root === 'template') {
                         parser.wxml += text
                     }
@@ -172,7 +175,7 @@ class SfcParser extends htmlparser2.Parser {
         this.wxml = ''
         this.js = ''
         this.json = ''
-        this.style = {}
+        this.style = []
     }
 }
 
