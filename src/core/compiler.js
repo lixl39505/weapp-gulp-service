@@ -123,11 +123,6 @@ class Compiler extends Events {
     }
     // 标准化任务配置对象
     _normalizeTaskConfig(config) {
-        // 自定义函数
-        if (typeof config === 'function') {
-            return config
-        }
-
         let {
             test, // glob | glob[] | { glob, options}
             use, // plugin[]
@@ -493,20 +488,7 @@ class Compiler extends Events {
         this._watchers = []
     }
     // 创建gulpTask
-    createGulpTask(config, context) {
-        // functional-task
-        if (typeof config === 'function') {
-            return series(
-                function (cb) {
-                    return config.call(taskCtx, cb)
-                },
-                function (cb) {
-                    progress.increment()
-                    cb()
-                }
-            )
-        }
-
+    createGulpTask(config, session) {
         // stream-task
         const { test, use, cache, output } = config
         const { cacheDir, outputDir, sourceDir } = this.options
@@ -521,7 +503,7 @@ class Compiler extends Events {
                     base: sourceDir, // 统一base
                 })
                     // 上下文注入
-                    .pipe(gulpContext(context))
+                    .pipe(gulpContext(session))
                     // 编译缓存
                     .pipe(
                         gulpIf(

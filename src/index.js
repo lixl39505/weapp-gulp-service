@@ -7,7 +7,6 @@ const checksum = require('./plugins/checksum')
 
 Compiler.use(cleanPlugin)
 Compiler.use(depGraphPlugin)
-Compiler.use(checksum)
 Compiler.use(compileCachePlugin)
 
 module.exports = Compiler
