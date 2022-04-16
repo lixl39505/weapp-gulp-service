@@ -1,31 +1,27 @@
 const { src } = require('gulp')
+const sinon = require('sinon')
 const { fixture, stream } = require('~h')
 const compilerSession = require('~f/compiler-session')
 //
 const gulpContext = require('internal/gulp-context')
-const gulpJs = require('internal/gulp-js')
-//
-let context = {}
+const gulpCompileCache = require('internal/gulp-compile-cache')
 
-describe('gulp-js', function () {
+describe('gulp-compile-cache', function () {
     beforeEach(function () {
         // reset
         session = compilerSession()
     })
 
-    it('trans', function (done) {
+    it('skip cache', function (done) {
+        session.checkFileCached = () => false
+
         src([fixture('js/a.js')])
             .pipe(gulpContext(session))
-            .pipe(gulpJs(session.options))
+            .pipe(gulpCompileCache())
             .pipe(
                 stream(function (file, enc, cb) {
                     try {
-                        var contents = file.contents.toString('utf8')
-
-                        // alias
-                        contents.should.include(`import { read } from 'b'`)
-                        // env
-                        contents.should.include(`return read("/" + name)`)
+                        session.files.should.eql([fixture('js/a.js')])
 
                         done()
                     } catch (e) {
@@ -34,5 +30,16 @@ describe('gulp-js', function () {
                     cb()
                 })
             )
+    })
+
+    it('hit cache', function (done) {
+        function hit(file) {
+            done()
+        }
+        session.checkFileCached = () => true
+
+        src([fixture('js/a.js')])
+            .pipe(gulpContext(session))
+            .pipe(gulpCompileCache({ hit }))
     })
 })

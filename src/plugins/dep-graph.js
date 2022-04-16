@@ -91,7 +91,7 @@ const methods = {
             extname = path.extname(file.path)
 
         // 清除历史deps
-        if (file.context.depended === false) {
+        if (file.context.depended !== true) {
             node.dependencies = []
         }
         let dependencies = new Set(node.dependencies),

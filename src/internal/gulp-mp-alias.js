@@ -88,7 +88,7 @@ module.exports = function (options) {
         try {
             content = alias(options, content, file.path)
         } catch (e) {
-            throw GulpError(file, e)
+            return cb(GulpError(file, e))
         }
 
         file.contents = Buffer.from(content)

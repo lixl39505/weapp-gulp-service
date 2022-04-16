@@ -3,6 +3,7 @@
     "miniprogramRoot": "dist/",
     "setting": {
         "es6": true,
+        "packNpmManually": true,
         "packNpmRelationList": [
             {
                 "packageJsonPath": "./package.json",

@@ -2,7 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const Vinyl = require('vinyl')
 const fancyLog = require('fancy-log')
-const { debounce, type } = require('../utils/helper')
+const { debounce, type, checksum } = require('../utils/helper')
 
 // 获取唯一id
 function uid(file) {
@@ -12,7 +12,8 @@ function uid(file) {
 const hooks = {
     init({ next }) {
         // private state
-        this._compiled = this._db.get('compiled').value() || {} // 缓存记录
+        this._compiled = this.query('compiled', {}) // 缓存记录
+        this._checksums = this.query('checksums', {}) // 签名对象
         this._hitTimes = 0 // 缓存命中数
         this._cacheTimes = 0 // 缓存总数
         this._cw = 0 // 写次数
@@ -128,6 +129,39 @@ const methods = {
         this._hitTimes++
         return true
     },
+    // 校验文件内容是否发生改变
+    checkFileChanged(file, settings) {
+        settings = Object.assign(
+            {
+                namespace: false,
+                algorithm: 'sha1',
+            },
+            settings
+        )
+        let ns = this._checksums
+
+        if (settings.namespace) {
+            if (typeof settings.namespace === 'function') {
+                settings.namespace = settings.namespace(file.clone())
+            }
+
+            ns = ns[settings.namespace] || (ns[settings.namespace] = {})
+        }
+
+        let key = path.relative(this.baseDir, file.path),
+            sum = (filechecksum = checksum(
+                file.contents.toString('utf8'),
+                settings.algorithm
+            ))
+
+        if (ns[key] === sum) {
+            return false
+        } else {
+            ns[key] = sum
+            this.saveChecksums()
+            return true
+        }
+    },
     // 移除缓存
     removeCache(files) {
         // remove(file)
@@ -162,6 +196,10 @@ const methods = {
     saveCompileCache: debounce(500, function () {
         this.save('compiled', this._compiled)
         this._cw++
+    }),
+    // 保存签名对象
+    saveChecksums: debounce(500, function () {
+        this.save('checksums', this._checksums)
     }),
 }
 

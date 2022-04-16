@@ -1,9 +1,11 @@
 const sinon = require('sinon')
 const low = require('lowdb')
 const Memory = require('lowdb/adapters/Memory')
+// const compilerSession = require('./compiler-session')
 
 module.exports = function () {
     function Compiler() {
+        // Object.assign(this, compilerSession())
         // db in memory
         this._db = low(new Memory())
     }

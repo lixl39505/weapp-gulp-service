@@ -13,7 +13,7 @@ let Compiler,
     lastFiles = [],
     currentFiles = []
 
-describe('plugin-compile-cache', function () {
+describe('plugin-clean', function () {
     beforeEach(function () {
         // reset
         Compiler = fakeCompilerUse()

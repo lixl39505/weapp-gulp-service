@@ -44,12 +44,16 @@ module.exports = function (options) {
             parser.end()
 
             let { wxml, js, json, style } = parser
-            if (wxml) pushFile(wxml, '.wxml')
-            if (js) pushFile(js, '.js')
-            if (json) pushFile(json ? JSON.stringify(rfs(json)) : '{}', `.json`)
-            style.forEach(({ lang, text }, index) => {
-                pushFile(text, `.${lang}`, index, style.length)
-            })
+            pushFile(wxml, '.wxml')
+            pushFile(js, '.js')
+            pushFile(json ? JSON.stringify(rfs(json)) : '{}', `.json`)
+            if (style.length) {
+                style.forEach(({ lang, text }, index) => {
+                    pushFile(text, `.${lang}`, index, style.length)
+                })
+            } else {
+                pushFile('', '.css')
+            }
         } catch (e) {
             return cb(new GulpError(file, e))
         }

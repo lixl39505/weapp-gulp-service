@@ -1,6 +1,6 @@
 const { src } = require('gulp')
 const { fixture, minify, stream } = require('~h')
-const compilerContext = require('~f/compiler-context')
+const compilerSession = require('~f/compiler-session')
 //
 const gulpContext = require('internal/gulp-context')
 const gulpCss = require('internal/gulp-css')
@@ -10,13 +10,13 @@ let context = {}
 describe('gulp-css', function () {
     beforeEach(function () {
         // reset
-        context = compilerContext()
+        session = compilerSession()
     })
 
     it('trans', function (done) {
         src([fixture('css/index.css')])
-            .pipe(gulpContext(context))
-            .pipe(gulpCss(context.options))
+            .pipe(gulpContext(session))
+            .pipe(gulpCss(session.options))
             .pipe(
                 stream(function (file, enc, cb) {
                     minify('css', file.contents.toString('utf8'))

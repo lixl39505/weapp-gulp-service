@@ -4,7 +4,7 @@ const ArrError = require('aggregate-error')
 const { src } = require('gulp')
 //
 const { fixture, stream } = require('~h')
-const compilerContext = require('~f/compiler-context')
+const compilerSession = require('~f/compiler-session')
 //
 let wxToolStub = {},
     cmdStub = {},
@@ -73,7 +73,7 @@ describe('gulp-build-npm', function () {
             WE_APP_PRIVATE_KEY_PATH: '',
             WE_CLI: '',
         })
-        context = compilerContext()
+        session = compilerSession()
     })
 
     it('npm install', function (done) {
@@ -84,8 +84,8 @@ describe('gulp-build-npm', function () {
         process.env.WE_CLI = '/user/cli'
         // run
         src([fixture('json/package.json')])
-            .pipe(gulpContext(context))
-            .pipe(gulpBuildNpm({ project: context.baseDir }))
+            .pipe(gulpContext(session))
+            .pipe(gulpBuildNpm({ project: session.baseDir }))
             .pipe(
                 stream(function (file, enc, cb) {
                     cmdStub.npmInstallNoSave.called.should.equal(true)
@@ -103,8 +103,8 @@ describe('gulp-build-npm', function () {
         process.env.WE_CLI = '/user/cli'
         // run
         src([fixture('json/package.json')])
-            .pipe(gulpContext(context))
-            .pipe(gulpBuildNpm({ project: context.baseDir }))
+            .pipe(gulpContext(session))
+            .pipe(gulpBuildNpm({ project: session.baseDir }))
             .pipe(
                 stream(function (file, enc, cb) {
                     cmdStub.checkNpmPkg.called.should.equal(true)
@@ -125,7 +125,7 @@ describe('gulp-build-npm', function () {
 
     it('wx build npm fail, no project', function (done) {
         src([fixture('json/package.json')])
-            .pipe(gulpContext(context))
+            .pipe(gulpContext(session))
             .pipe(gulpBuildNpm())
             .on('error', function (err) {
                 err.toString().should.equal(
@@ -138,8 +138,8 @@ describe('gulp-build-npm', function () {
 
     it('wx build npm fail, no CLI / no PRIVATE_KEY', function (done) {
         src([fixture('json/package.json')])
-            .pipe(gulpContext(context))
-            .pipe(gulpBuildNpm({ project: context.baseDir }))
+            .pipe(gulpContext(session))
+            .pipe(gulpBuildNpm({ project: session.baseDir }))
             .on('error', function (err) {
                 err.message.should.include(
                     'Error: Private key file path not provided'
@@ -154,7 +154,7 @@ describe('gulp-build-npm', function () {
 
     it('wx build npm success when tolerant', function (done) {
         src([fixture('json/package.json')])
-            .pipe(gulpContext(context))
+            .pipe(gulpContext(session))
             .pipe(
                 gulpBuildNpm({
                     project: context.baseDir,
@@ -175,8 +175,8 @@ describe('gulp-build-npm', function () {
         process.env.WE_CLI = '/user/cli'
 
         src([fixture('json/package.json')])
-            .pipe(gulpContext(context))
-            .pipe(gulpBuildNpm({ project: context.baseDir }))
+            .pipe(gulpContext(session))
+            .pipe(gulpBuildNpm({ project: session.baseDir }))
             .pipe(
                 stream(function (file) {
                     file.basename.should.equal('package.json')

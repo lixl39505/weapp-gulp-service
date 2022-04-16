@@ -24,7 +24,7 @@ module.exports = function gulpCompileCache(options = {}) {
                 session.files.push(file.path)
             }
         } catch (e) {
-            throw GulpError(file, e)
+            return next(GulpError(file, e))
         }
 
         next(null, file)

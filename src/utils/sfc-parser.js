@@ -129,7 +129,7 @@ class SfcParser extends htmlparser2.Parser {
                             // json取最后一个
                             parser.json = text.trim()
                         } else {
-                            parser.js += text.trim()
+                            parser.js += text.trimLeft()
                         }
                     } else if (parser.root === 'style') {
                         let lang = parser.rootAttrs.lang || 'css'

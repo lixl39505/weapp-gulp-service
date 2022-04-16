@@ -1,7 +1,7 @@
 {
     "pages": [
         {
-            "path": "pages/tab-bar/tab1/tab1",
+            "path": "/pages/tab-bar/tab1/tab1",
             "title": "首页",
             "name": "home"
         },

@@ -30,8 +30,11 @@ module.exports = function () {
         // pkg
         _version: pkgJson.version,
         npmList: options.npmList,
-
+        // session
+        files: [], // 编译文件列表
         // methods
+        tap: sinon.fake(),
+        fire: sinon.fake(),
         depend: sinon.fake(),
         addDep: sinon.fake(),
         removeGraphNodes: sinon.fake(),

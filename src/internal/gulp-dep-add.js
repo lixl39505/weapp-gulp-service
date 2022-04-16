@@ -23,7 +23,7 @@ module.exports = function (options) {
 
             cb(null, file)
         } catch (e) {
-            throw GulpError(file, e)
+            cb(GulpError(file, e))
         }
     })
 }

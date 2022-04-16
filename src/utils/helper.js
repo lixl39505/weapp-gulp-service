@@ -86,11 +86,7 @@ function deepTraverse(forest, callback, options = {}) {
         return isContinue
     }
 
-    forest.forEach((root) => {
-        if (iterate(root, null, options) == false) {
-            return
-        }
-    })
+    forest.every((root) => iterate(root, null, options))
 }
 
 // 加载环境变量
@@ -197,15 +193,9 @@ function runQueue(queue, fn, cb) {
         if (index >= queue.length) {
             stopQueue(null, index)
         } else {
-            if (queue[index]) {
-                fn(queue[index], (err, goOn) => {
-                    err || goOn === false
-                        ? stopQueue(err, index)
-                        : step(index + 1)
-                })
-            } else {
-                step(index + 1)
-            }
+            fn(queue[index], (err, goOn) => {
+                err || goOn === false ? stopQueue(err, index) : step(index + 1)
+            })
         }
     }
 
@@ -356,7 +346,7 @@ function debounce(delay, callback, options) {
 const partial = function (f, ...arr) {
     return function (...args) {
         return (function (a) {
-            return a.length === f.length ? f(...a) : partial(f, a)
+            return a.length === f.length ? f(...a) : partial(f, ...a)
         })([...arr, ...args])
     }
 }

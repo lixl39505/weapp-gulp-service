@@ -1,7 +1,6 @@
 const rg = require('requireg')
 const fs = require('fs')
 const path = require('path')
-const dashify = require('dashify')
 const { runQueue } = require('../../utils/helper')
 
 // miniprogram-ci

@@ -27,13 +27,22 @@ describe('plugin-dep-graph', function () {
         context.saveDepGraph = sinon.fake(context.saveDepGraph._original)
         context.wgsResolve = sinon.fake(wgsResolve)
         hooks = Compiler.installHook.firstCall.returnValue
+        // first run
         hooks.init.call(context, { next })
         hooks.beforeCompile.call(context, { next })
     })
 
-    it('dep collection', function () {
-        // prepare
+    it('install', function () {
+        Compiler.installHook.called.should.equal(true)
+
+        context._depGraph.should.eql({})
+        context._reverseTimes.should.eql(0)
+        context._gw.should.eql(0)
+    })
+
+    it('dep manage', function () {
         // 测试文件
+        // a -> b b->c c->env.APP_SERVER
         let a = new Vinyl({
                 base: fixture(),
                 path: fixture('js/a.js'),
@@ -51,22 +60,18 @@ describe('plugin-dep-graph', function () {
                 path: fixture('js/c.js'),
                 contents: Buffer.from('console.log(process.env.APP_SERVER)'),
                 context: {
+                    // 自定义依赖
                     customDeps: [fixture('.env/APP_SERVER')],
                 },
             })
-
-        //
-        Compiler.installHook.called.should.equal(true)
-
-        context._depGraph.should.eql({})
-        context._reverseTimes.should.eql(0)
-        context._gw.should.eql(0)
 
         // depend
         const options = { matchers: [es6ImportReg] }
         context.depend(a, options)
         context.depend(b, options)
-        context.depend(c, options)
+        context.depend(c, {
+            matchers: [() => ['../img/wx.png']],
+        })
         // depend duplicate
         context.depend(a, options)
         context.depend(c, options)
@@ -91,7 +96,7 @@ describe('plugin-dep-graph', function () {
         })
         nodeC.should.eql({
             path: pathify('/js/c.js'),
-            dependencies: [pathify('/.env/APP_SERVER')],
+            dependencies: [pathify('/img/wx.png'), pathify('/.env/APP_SERVER')],
             requiredBy: [],
         })
 
@@ -109,7 +114,10 @@ describe('plugin-dep-graph', function () {
             },
             [pathify('/js/c.js')]: {
                 path: pathify('/js/c.js'),
-                dependencies: [pathify('/.env/APP_SERVER')],
+                dependencies: [
+                    pathify('/img/wx.png'),
+                    pathify('/.env/APP_SERVER'),
+                ],
                 requiredBy: [pathify('/js/b.js')],
             },
         }
@@ -123,8 +131,8 @@ describe('plugin-dep-graph', function () {
             .should.eql([pathify('/js/b.js'), pathify('/js/a.js')])
 
         // addDep
+        context.addDep(b, fixture('js/c.js')) // duplicate
         context.addDep(b, [
-            fixture('js/c.js'), // duplicate
             fixture('js/d.js'), // new
         ])
         nodeB.dependencies.should.eql([
@@ -133,6 +141,11 @@ describe('plugin-dep-graph', function () {
         ])
 
         // removeDep
+        context.removeDep(a, fixture('js/b.js'))
+        nodeA.dependencies.should.eql([])
+        nodeB.requiredBy.should.eql([])
+
+        // remove nodes
         context.removeGraphNodes(c)
         should.not.exist(context.getGraphNode(c))
     })

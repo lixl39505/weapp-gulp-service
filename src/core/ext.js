@@ -1,11 +1,8 @@
 const path = require('path')
 const camelcase = require('camelcase')
-const rqp = require('./require-piper')
-const GulpError = rqp('gulp-error')
 const { isPojo, deepTraverse } = require('../utils/helper')
 
 const posix = path.posix
-const pluginName = 'app-json-ext'
 
 // 对应微信小程序 ext.json
 module.exports = class Ext {
@@ -22,7 +19,7 @@ module.exports = class Ext {
         if (this.parser) {
             this.parser.parse(this.content)
         } else {
-            throw new GulpError(`platform:${platform} not support`, pluginName)
+            throw new Error(`platform:${this.platform} not support`)
         }
     }
 
@@ -81,9 +78,8 @@ const parserMap = {
                 route = this.normalizeRoute(route)
 
                 if (!route.path) {
-                    throw new GulpError(
-                        `Invalid Route From app.json，only support 'path' or { path: '' }`,
-                        pluginName
+                    throw new Error(
+                        `Invalid Route From app.json，only support 'path' or { path: '' }`
                     )
                 }
 
@@ -94,7 +90,8 @@ const parserMap = {
                 if (is[0] === '/') {
                     is = is.slice(1)
                 }
-
+                
+                // fullpath
                 route.__is__ = is
 
                 if (route.children && route.children.length) {

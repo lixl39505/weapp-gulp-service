@@ -42,14 +42,14 @@ function requirePiper(name) {
         }
     }
 
-    return gulpTransparent
+    return gulpPassThrough
 }
 
-function runQueue() {}
-runQueue.promise = function (handlers) {
-    handlers.forEach((fn) => fn())
-    return Promise.resolve()
-}
+// function runQueue() {}
+// runQueue.promise = function (handlers) {
+//     handlers.forEach((fn) => fn())
+//     return Promise.resolve()
+// }
 
 // create files
 function gulpSrc(paths = []) {
@@ -68,7 +68,7 @@ function gulpSrc(paths = []) {
 }
 
 // do nothing
-function gulpTransparent(options = {}) {
+function gulpPassThrough(options = {}) {
     return through.obj(function (file, enc, cb) {
         cb(null, file)
     })
@@ -163,7 +163,7 @@ describe('compiler', function () {
             },
         }
         helperStub = {
-            runQueue,
+            // runQueue,
             resolveNpmList(options) {
                 let baseDir = options.baseDir
                 return [
@@ -187,7 +187,7 @@ describe('compiler', function () {
             // create one file in memory
             src: sinon.fake(gulpSrc),
             // no output
-            dest: sinon.fake(gulpTransparent),
+            dest: sinon.fake(gulpPassThrough),
         })
         rpqStub = sinon.fake(requirePiper)
         sourceWatcherStub = sinon.fake(createWatcher)
@@ -268,6 +268,7 @@ describe('compiler', function () {
                 // check tasks
                 .then(() => {
                     let ignore = [
+                        '*.md',
                         '/Users/july/workspace/open-source/wgs/test/dist/**',
                         '/Users/july/workspace/open-source/wgs/test/.wgs/**',
                         '**/node_modules/**',
@@ -430,6 +431,31 @@ describe('compiler', function () {
             })
     })
 
+    it('compile up-stream', function () {
+        // normal
+        let compiler = createCompiler()
+
+        compiler.traceReverseDep = sinon.fake.returns([
+            fixture('b.less'),
+            fixture('c.less'),
+        ])
+        sinon.replace(compiler, '_runTasks', sinon.fake(compiler._runTasks))
+
+        return compiler.run().then(() => {
+            // 编译上游模块
+            compiler._compileUpStream({
+                totalHit: 1,
+                files: [fixture('a.less')],
+            })
+
+            let tasks = compiler._runTasks.firstArg
+            // js-task
+            Object.keys(tasks).should.lengthOf(1)
+            // a.js b.js
+            tasks.less.test.globs.should.lengthOf(2)
+        })
+    })
+
     it('increment compile', function () {
         // normal
         let compiler = createCompiler()
@@ -440,7 +466,7 @@ describe('compiler', function () {
         ])
         sinon.replace(compiler, '_runTasks', sinon.fake(compiler._runTasks))
 
-        // no task
+        // 增量编译在run之前是不生效的
         compiler.incrementCompile(fixture('a.js'))
         compiler._runTasks.called.should.equal(false)
 
@@ -475,12 +501,26 @@ describe('compiler', function () {
             })
     })
 
+    it('hooks', function () {
+        // normal
+        let compiler = createCompiler(),
+            handler = sinon.fake(function (payload) {
+                var { next } = payload
+                next()
+            })
+
+        compiler.tap('beforeCompile', handler)
+        return compiler.fire('beforeCompile', 'hello').then(() => {
+            handler.called.should.equal(true)
+        })
+    })
+
     it('install plugin', function () {
         // stubs
-        let onInit = sinon.fake(),
-            onClean = sinon.fake(),
-            onBeforeCompile = sinon.fake(),
-            onAfterCompile = sinon.fake(),
+        let onInit = sinon.fake(({ next }) => next()),
+            onClean = sinon.fake(({ next }) => next()),
+            onBeforeCompile = sinon.fake(({ next }) => next()),
+            onAfterCompile = sinon.fake(({ next }) => next()),
             getName = sinon.fake.returns('foo')
 
         function myPlugin(Compiler) {

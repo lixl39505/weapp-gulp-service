@@ -11,6 +11,8 @@ module.exports = function () {
         output: 'dist',
         // 源码目录
         source: 'src',
+        // 忽略文件
+        ignore: ['*.md'],
         // env
         env: {
             APP_PUBLICK_PATH: '/',

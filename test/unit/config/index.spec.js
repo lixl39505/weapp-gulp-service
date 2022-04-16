@@ -22,7 +22,7 @@ describe('config', function () {
         })
     })
 
-    it('resolveOptions', function () {
+    it('resolve', function () {
         var config = resolveOptions({
             args: {
                 config: fixture('../weapp.config.js'),
@@ -30,16 +30,17 @@ describe('config', function () {
             },
         })
 
-        // env
+        // check env
         config.env.mode.should.equal('prod')
         config.env.NODE_ENV.should.equal('production')
         config.env.CUSTOM_TAB_BAR.should.equal('true')
-        // options merge
+        // check app
         config.app.should.eql({
             description: 'template',
             miniprogramRoot: 'dist/',
             setting: {
                 es6: true,
+                packNpmManually: true,
                 packNpmRelationList: [
                     {
                         packageJsonPath: './package.json',
@@ -48,6 +49,16 @@ describe('config', function () {
                 ],
             },
         })
+        // check tasks
+
+        // img: {
+        //     test: ({ imgType }) => `./**/*.{${imgType.join(',')}}`,
+        // },
+        var imgTask = config.tasks.img
+        imgTask.test.should.a('function')
+        imgTask.test(config).should.eql('./**/*.{jpg,png,svg,webp,gif}')
+
+        // others
         config.output.should.equal('dist')
         config.source.should.equal('src')
         config.lessVar.should.equal('./dark.less')
@@ -55,5 +66,25 @@ describe('config', function () {
             '@': './src',
             _c: './src/components',
         })
+    })
+
+    it('ignore string', function () {
+        var config = resolveOptions({
+            args: {
+                config: fixture('../weapp.config.ignore.js'),
+            },
+        })
+
+        config.ignore.should.eql(['*.md'])
+    })
+
+    it('callback', function () {
+        var config = resolveOptions({
+            args: {
+                config: fixture('../weapp.config.callback.js'),
+            },
+        })
+
+        config.lessVar.should.eql('./white.less')
     })
 })

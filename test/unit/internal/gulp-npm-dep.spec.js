@@ -3,7 +3,7 @@ const fs = require('fs')
 const sinon = require('sinon')
 const { src } = require('gulp')
 const { fixture, minify, stream } = require('~h')
-const compilerContext = require('~f/compiler-context')
+const compilerSession = require('~f/compiler-session')
 //
 const gulpContext = require('internal/gulp-context')
 const gulpNpmDep = require('internal/gulp-npm-dep')
@@ -13,7 +13,7 @@ let context = {}
 describe('gulp-npm-dep', function () {
     beforeEach(function () {
         // reset
-        context = compilerContext()
+        session = compilerSession()
     })
 
     it('no npm modules', function (done) {
@@ -23,7 +23,7 @@ describe('gulp-npm-dep', function () {
             '/Applications/wechatwebdevtools.app/Contents/MacOS/cli'
 
         src([fixture('json/package.json')])
-            .pipe(gulpContext(context))
+            .pipe(gulpContext(session))
             .pipe(gulpNpmDep({ packNpmRelationList: context.npmList }))
             .pipe(
                 stream(function (file, enc, cb) {
@@ -85,7 +85,7 @@ describe('gulp-npm-dep', function () {
         sinon.replace(fs, 'statSync', sinon.fake.returns(fstat))
 
         src([fixture('json/package.json')])
-            .pipe(gulpContext(context))
+            .pipe(gulpContext(session))
             .pipe(gulpNpmDep({ packNpmRelationList: context.npmList }))
             .pipe(
                 stream(function (file, enc, cb) {

@@ -1,17 +1,18 @@
 const { requireFromString: rfs } = require('module-from-string')
 const { src } = require('gulp')
 const { fixture, minify, stream, afterN } = require('~h')
-const compilerContext = require('~f/compiler-context')
+const compilerSession = require('~f/compiler-session')
 //
 const gulpContext = require('internal/gulp-context')
 const gulpMp = require('internal/gulp-mp')
+const gulpMpConcat = require('internal/gulp-mp-concat')
 //
 let context = {}
 
 describe('gulp-mp', function () {
     beforeEach(function () {
         // reset
-        context = compilerContext()
+        session = compilerSession()
     })
 
     it('require-from-string', function () {
@@ -41,8 +42,8 @@ describe('gulp-mp', function () {
             })
 
         src([fixture('sfc/bar.vue')])
-            .pipe(gulpContext(context))
-            .pipe(gulpMp(context.options))
+            .pipe(gulpContext(session))
+            .pipe(gulpMp(session.options))
             .pipe(
                 stream(function (file, env, cb) {
                     const { extname } = file,
@@ -107,8 +108,8 @@ describe('gulp-mp', function () {
             })
 
         src([fixture('sfc/empty.vue')])
-            .pipe(gulpContext(context))
-            .pipe(gulpMp(context.options))
+            .pipe(gulpContext(session))
+            .pipe(gulpMp(session.options))
             .pipe(
                 stream(function (file, env, cb) {
                     const { extname } = file,
@@ -164,8 +165,9 @@ describe('gulp-mp', function () {
             })
 
         src([fixture('sfc/multi.vue')])
-            .pipe(gulpContext(context))
-            .pipe(gulpMp(context.options))
+            .pipe(gulpContext(session))
+            .pipe(gulpMp(session.options))
+            .pipe(gulpMpConcat(session.options))
             .pipe(
                 stream(function (file, env, cb) {
                     const { extname } = file,
@@ -186,7 +188,7 @@ describe('gulp-mp', function () {
                         // 合并
                         compare = minify('css', contents).then((code) => {
                             code.should.equal(
-                                `.header{color:@primary-color}.content{height:200px}`
+                                `.header{color:#123456}.content{height:200px}`
                             )
                         })
                     }

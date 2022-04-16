@@ -16,14 +16,14 @@ module.exports = function (options = {}) {
 
         try {
             depend(file, options)
-
-            cb(null, file)
         } catch (e) {
             // 移除缓存，以便下一次重新收集
             removeGraphNodes(file.path)
             removeCache(file.path)
 
-            throw GulpError(file, e)
+            return cb(GulpError(file, e))
         }
+
+        cb(null, file)
     })
 }

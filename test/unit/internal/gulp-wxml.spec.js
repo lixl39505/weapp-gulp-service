@@ -1,6 +1,6 @@
 const { src } = require('gulp')
 const { minify, fixture, stream } = require('~h')
-const compilerContext = require('~f/compiler-context')
+const compilerSession = require('~f/compiler-session')
 //
 const gulpContext = require('internal/gulp-context')
 const gulpWxml = require('internal/gulp-wxml')
@@ -10,13 +10,13 @@ let context = {}
 describe('gulp-wxml', function () {
     beforeEach(function () {
         // reset
-        context = compilerContext()
+        session = compilerSession()
     })
 
     it('trans', function (done) {
         src([fixture('wxml/index.wxml')])
-            .pipe(gulpContext(context))
-            .pipe(gulpWxml(context.options))
+            .pipe(gulpContext(session))
+            .pipe(gulpWxml(session.options))
             .pipe(
                 stream(function (file, enc, cb) {
                     minify('html', file.contents.toString('utf8'), {
