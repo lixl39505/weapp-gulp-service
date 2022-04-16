@@ -20,10 +20,10 @@ module.exports = function (options) {
 
         try {
             addDep(file, paths)
-
-            cb(null, file)
         } catch (e) {
-            cb(GulpError(file, e))
+            return cb(GulpError(file, e))
         }
+
+        cb(null, file)
     })
 }
