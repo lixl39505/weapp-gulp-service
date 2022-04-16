@@ -259,19 +259,14 @@ class Compiler extends Events {
                 // progress
                 .then(() => {
                     let paths = [],
-                        ignore = [],
-                        num = 0
+                        ignore = []
 
                     Object.values(userTasks)
                         .concat(Object.values(internalTasks))
                         .forEach((v) => {
                             if (v.test) {
-                                // 配置型任务
                                 paths.push(v.test.globs)
                                 ignore.push(...v.test.options.ignore)
-                            } else {
-                                // 函数式任务
-                                num++
                             }
                         })
 
@@ -281,7 +276,7 @@ class Compiler extends Events {
                     progress.append(
                         statsFilesNum(paths, {
                             ignore: dedup(ignore),
-                        }) + num
+                        })
                     )
                 })
                 // before-hook
