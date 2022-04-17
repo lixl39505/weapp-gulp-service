@@ -28,12 +28,6 @@ function resolveOptions(cmdOptions) {
     console.log(ansiColors.white('current env:'))
     console.log(ansiColors.white(JSON.stringify(options.env, null, 4)))
 
-    // 应用配置
-    options.app = objectMerge(
-        require(path.join(path.dirname(configFile), 'project.config.json')),
-        options.app || {}
-    )
-
     // merge options
     options.config = configFile
     Object.assign(options, cmdOptions)

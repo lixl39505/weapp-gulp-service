@@ -207,27 +207,29 @@ runQueue.promise = promisify(runQueue)
 
 // 获取npm构建信息
 function resolveNpmList(options) {
-    const projectPath = path.resolve(path.dirname(options.config))
-    const projConfig = require(path.resolve(projectPath, 'project.config.json'))
+    const projectPath = path.resolve(path.dirname(options.config)),
+        projConfigPath = path.join(projectPath, 'project.config.json')
 
-    // 手动配置
-    if (projConfig.setting.packNpmManually) {
-        return projConfig.setting.packNpmRelationList.map((v) => ({
-            // package.json
-            path: path.resolve(projectPath, v.packageJsonPath),
-            // 输出目录
-            output: path.resolve(projectPath, v.miniprogramNpmDistDir),
-        }))
+    if (fs.existsSync(projConfigPath)) {
+        const projConfig = require(projConfigPath)
+        // 手动配置
+        if (projConfig.setting.packNpmManually) {
+            return projConfig.setting.packNpmRelationList.map((v) => ({
+                // package.json
+                path: path.resolve(projectPath, v.packageJsonPath),
+                // 输出目录
+                output: path.resolve(projectPath, v.miniprogramNpmDistDir),
+            }))
+        }
     }
+
     // 默认配置
-    else {
-        return [
-            {
-                path: path.resolve(projectPath, options.output, 'package.json'), // 小程序默认读取miniprogramRoot下的package.json，即我们的output目录
-                output: path.resolve(projectPath, options.output),
-            },
-        ]
-    }
+    return [
+        {
+            path: path.resolve(projectPath, options.output, 'package.json'), // 小程序默认读取miniprogramRoot下的package.json，即我们的output目录
+            output: path.resolve(projectPath, options.output),
+        },
+    ]
 }
 
 // glob 统计文件数量
