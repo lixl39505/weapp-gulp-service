@@ -4,7 +4,7 @@ const path = require('path')
 const {
     es5ImportReg,
     es6ImportReg,
-    wxmlUrlReg,
+    htmlUrlReg,
     cssImportReg,
     cssUrlReg,
 } = require('../config/constants')
@@ -23,8 +23,10 @@ function alias(options, content, _filePath) {
             content = content.replace(es6ImportReg, replaceCallback)
             content = content.replace(es5ImportReg, replaceCallback)
             break
+        case '.html':
+        case '.xml':
         case '.wxml':
-            content = content.replace(wxmlUrlReg, replaceCallback)
+            content = content.replace(htmlUrlReg, replaceCallback)
             break
         case '.styl':
         case '.stylus':

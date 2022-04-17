@@ -22,7 +22,7 @@ const gulpIgnore = require('gulp-ignore')
 
 // .js文件
 module.exports = function (options = {}) {
-    let { baseDir, outputDir, lessVar } = options
+    let { baseDir, outputDir, lessVar, css = {}, px2rpx = {} } = options
     let lessOptons = Object.assign({}, options.less)
     lessVar = lessVar ? path.resolve(baseDir, options.lessVar) : ''
 
@@ -70,12 +70,13 @@ module.exports = function (options = {}) {
         }, gulpDepAdd({ paths: lessVar })),
         // less2css
         gulpLess(lessOptons),
-        // px2rpx
-        gulpPostcss([pxtorpx(options.px2rpx)]),
-        // css2wxss
-        gulpRename({ extname: '.wxss' }),
-        // import xx.less -> import xx.wxss
-        gulpReplace('.less', '.wxss'),
+        // css convert
+        gulpIf(!!px2rpx, gulpPostcss([pxtorpx(px2rpx)])),
+        gulpIf(css.rename, gulpRename(css.rename)),
+        gulpIf(
+            !!(css.rename && css.rename.extname),
+            gulpReplace('.css', css.rename.extname)
+        ),
         // 图片转base64
         gulpImgBase64(options.base64)
     )

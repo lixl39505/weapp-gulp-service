@@ -20,16 +20,23 @@ module.exports = function () {
         },
         // 图片类型
         imgType: ['jpg', 'png', 'svg', 'webp', 'gif'],
+        // gulp-alias
+        alias: {
+            '@': path.join(baseDir, './fixture'),
+        },
+        // css选项
+        css: {
+            // gulp-rename选项
+            rename: {
+                extname: '.wxss',
+            },
+        },
         // gulp-less
         less: {
             javascriptEnabled: true,
         },
         // gulp-less-var
         lessVar: path.join(baseDir, './fixture/less/variables.less'),
-        // gulp-alias
-        alias: {
-            '@': path.join(baseDir, './fixture'),
-        },
         // postcss-px2rpx
         px2rpx: {
             times: 2, // px -> rpx 转换倍数

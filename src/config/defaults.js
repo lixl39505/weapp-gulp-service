@@ -21,6 +21,13 @@ module.exports = function () {
         alias: {
             '@': './src',
         },
+        // css选项
+        css: {
+            // gulp-rename选项
+            rename: {
+                extname: '.wxss',
+            },
+        },
         // less变量转css变量+js变量
         lessVar: '',
         // less选项

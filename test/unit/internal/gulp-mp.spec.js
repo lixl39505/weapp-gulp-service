@@ -188,7 +188,7 @@ describe('gulp-mp', function () {
                         // 合并
                         compare = minify('css', contents).then((code) => {
                             code.should.equal(
-                                `.header{color:#123456}.content{height:200px}`
+                                `.header{color:#123456}.content{height:400rpx}`
                             )
                         })
                     }
