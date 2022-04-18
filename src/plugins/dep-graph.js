@@ -43,6 +43,14 @@ const hooks = {
 
         next()
     },
+    clean({ next, expired }) {
+        // 清理依赖图
+        this.removeGraphNodes(expired)
+        if (expired.length) {
+            this.reverseDep()
+        }
+        next()
+    },
     beforeCompile({ next }) {
         this._reverseTimes = 0
         this._gw = 0

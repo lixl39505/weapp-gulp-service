@@ -12,14 +12,13 @@ module.exports = function (options = {}) {
             return cb(new GulpError(file, 'stream not supported'))
         }
 
-        const { depend, removeGraphNodes, removeCache } = file.context
+        const { depend, removeGraphNodes } = file.context
 
         try {
             depend(file, options)
         } catch (e) {
             // 移除缓存，以便下一次重新收集
             removeGraphNodes(file.path)
-            removeCache(file.path)
 
             return cb(GulpError(file, e))
         }

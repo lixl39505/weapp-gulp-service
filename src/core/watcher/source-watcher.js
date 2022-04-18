@@ -31,15 +31,11 @@ module.exports = (compiler) => {
             // 批量删除
             if (unlinkPaths.length) {
                 compiler.nextTask((cb) => {
-                    try {
-                        compiler.cleanSpec(unlinkPaths)
-                        compiler.removeGraphNodes(unlinkPaths)
-                        compiler.removeCache(unlinkPaths)
-                    } catch (e) {
-                        cb(e)
-                    }
-
-                    cb()
+                    compiler
+                        .cleanSpec(unlinkPaths)
+                        .then((expired) => compiler.fire('clean', { expired }))
+                        .then(() => cb())
+                        .catch((e) => cb(e))
                 })
             }
         })

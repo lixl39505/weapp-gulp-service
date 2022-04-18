@@ -3,20 +3,18 @@ const proxyquire = require('proxyquire')
 const sinon = require('sinon')
 //
 const { fixture, toGlobPath } = require('~h')
-const fakeCompilerUse = require('~f/compiler-use')
+const fakeCompilerHooks = require('~f/compiler-hooks')
 //
 let Compiler,
-    next = () => {},
     clean,
     context,
-    hooks,
     lastFiles = [],
     currentFiles = []
 
 describe('plugin-clean', function () {
     beforeEach(function () {
         // reset
-        Compiler = fakeCompilerUse()
+        Compiler = fakeCompilerHooks()
         clean = proxyquire('plugins/clean', {
             del: sinon.fake(function (files) {
                 return Promise.resolve(files)
@@ -28,73 +26,58 @@ describe('plugin-clean', function () {
                 },
             },
         })
-        // fastGlobStub.sync = function () {
-        //     return currentFiles
-        // }
         // install
         clean(Compiler)
-        // init
+        // mock
         context = new Compiler()
         context.baseDir = path.dirname(fixture())
         context.sourceDir = fixture()
         context.outputDir = path.join(context.baseDir, 'dist')
         context.getOutputPath = sinon.fake(context.getOutputPath)
         context.saveFileList = sinon.fake(context.saveFileList._original)
-        hooks = Compiler.installHook.firstCall.returnValue
-        hooks.init.call(context, { next })
-        hooks.beforeCompile.call(context, { next })
     })
 
-    it('new file', function () {
-        // prepare
-        currentFiles = ['/js/new1.js', '/js/new2.js', '/js/new3.vue']
-
-        //
+    it('install', function () {
         Compiler.installHook.called.should.equal(true)
-
         should.exist(context.isNewFile)
         should.exist(context.cleanExpired)
         should.exist(context.cleanSpec)
         should.exist(context.getOutputPath)
         should.exist(context.saveFileList)
 
-        context._fileList.should.eql([])
-        context._expiredNum.should.eql(0)
-        context._fw.should.eql(0)
+        return context.run().then(() => {
+            context._fileList.should.eql([])
+            context._expiredNum.should.eql(0)
+            context._fw.should.eql(0)
+        })
+    })
 
-        let isNew = context.isNewFile(currentFiles[0])
-        isNew.should.equal(true)
+    it('isNewFile', function () {
+        // prepare
+        currentFiles = ['/js/a.js']
+        context.save('fileList', currentFiles)
 
-        context.cleanExpired()
-        context._fileList.should.eql(currentFiles)
-        context.query('fileList').should.eql(currentFiles)
+        return context.run().then(() => {
+            context.isNewFile('/js/a.js').should.equal(false)
+            context.isNewFile('/js/b.js').should.equal(true)
+        })
     })
 
     it('clean up expired files', function (done) {
         // prepare
-        lastFiles = [
-            '/js/bar1.js',
-            // expired
-            '/css/bar2.css',
-            '/sfc/bar3.vue',
-        ]
-        currentFiles = [
-            '/js/bar1.js',
-            //
-            '/css/new1.css',
-            '/sfc/new2.vue',
-        ]
-        context._fileList = [...lastFiles]
+        lastFiles = ['/js/a.js', '/js/b.js', '/sfc/bar.vue']
+        currentFiles = ['/js/a.js', '/css/new.css']
+        context.save('fileList', lastFiles)
 
-        //
         context
-            .cleanExpired()
+            .run()
+            .then(() => context.cleanExpired())
             .then((expired) => {
-                expired.should.eql(['/css/bar2.css', '/sfc/bar3.vue'])
+                expired.should.eql(['/js/b.js', '/sfc/bar.vue'])
 
                 context.getOutputPath.firstCall.returnValue.should.eql([
-                    toGlobPath(path.join(context.baseDir, 'dist/css/bar2.*')),
-                    toGlobPath(path.join(context.baseDir, 'dist/sfc/bar3/**')),
+                    toGlobPath(path.join(context.baseDir, 'dist/js/b.*')),
+                    toGlobPath(path.join(context.baseDir, 'dist/sfc/bar/**')),
                 ])
 
                 context._expiredNum.should.equal(2)
@@ -106,16 +89,23 @@ describe('plugin-clean', function () {
             .catch((err) => done(err))
     })
 
-    it('clean spec', function (done) {
+    it('clean spec', function () {
         // last files
-        context._fileList = [
+        lastFiles = [
             fixture('js/bar1.js'),
             fixture('css/bar2.css'),
             fixture('sfc/bar3.vue'),
         ]
+        context.save('fileList', lastFiles)
 
-        context
-            .cleanSpec([fixture('js/bar1.js'), fixture('sfc/bar3.vue')])
+        return context
+            .run()
+            .then(() =>
+                context.cleanSpec([
+                    fixture('js/bar1.js'),
+                    fixture('sfc/bar3.vue'),
+                ])
+            )
             .then(() => {
                 context.getOutputPath.firstCall.returnValue.should.eql([
                     toGlobPath(path.join(context.baseDir, 'dist/js/bar1.*')),
@@ -124,9 +114,6 @@ describe('plugin-clean', function () {
 
                 context._fileList.should.eql([fixture('css/bar2.css')])
                 context.query('fileList').should.eql([fixture('css/bar2.css')])
-
-                done()
             })
-            .catch((err) => done(err))
     })
 })

@@ -40,6 +40,7 @@ const plugins = [],
         clean: [],
         beforeCompile: [],
         afterCompile: [],
+        taskerror: [],
     },
     pkgInfo = require('../../package.json') // 包信息
 
@@ -231,27 +232,15 @@ class Compiler extends Events {
     }
     // 编译前清理动作
     _clean() {
-        let _expired = []
         // 文件在磁盘上可能发生了变动，需要维护状态一致性
         return this._inited
             .then(() => this.cleanExpired())
-            .then((expired) => {
-                _expired = expired
-                return this.fire('clean', { expired })
-            })
-            .then(() => {
-                // 清理依赖图
-                this.removeGraphNodes(_expired)
-                if (_expired.length) {
-                    this.reverseDep()
-                }
-                // 清理缓存
-                this.removeCache(_expired)
-            })
+            .then((expired) => this.fire('clean', { expired }))
     }
     // 执行task
     _runTasks(userTasks = {}, internalTasks = {}) {
-        let session = this.createCompileSession()
+        let session = this.createCompileSession(),
+            runErr = null
 
         return (
             // init-hook
@@ -357,6 +346,14 @@ class Compiler extends Events {
 
                     return session
                 })
+                // error handle
+                .catch((e) => {
+                    runErr = e
+
+                    return runErr && this.fire('taskerror', { error: runErr })
+                })
+                // done
+                .then(() => (runErr ? Promise.reject(runErr) : session))
                 .finally(() => {
                     // unlock
                     this.compiling = false
@@ -659,12 +656,12 @@ class Compiler extends Events {
         plugin(Compiler)
     }
     // 添加hook
-    static installHook(name, cb) {
+    static installHook(name, handler) {
         // hook map
         if (type(name) === 'object') {
             Object.entries(name).forEach(([k, v]) => Compiler.installHook(k, v))
         } else {
-            hooks[name] && hooks[name].push(cb)
+            hooks[name] && hooks[name].push(handler)
         }
     }
     // 设置pipe

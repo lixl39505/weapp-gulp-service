@@ -3,7 +3,7 @@ const fastGlob = require('fast-glob')
 const del = require('del')
 const fancyLog = require('fancy-log')
 const ansiColors = require('ansi-colors')
-const { debounce, toGlobPath, type } = require('../utils/helper')
+const { debounce, toGlobPath, type, remove } = require('../utils/helper')
 
 // 输出目录清理
 module.exports = function (Compiler) {
@@ -51,8 +51,8 @@ module.exports = function (Compiler) {
                 return del(this.getOutputPath(expired), {
                     cwd: baseDir,
                     force: true,
-                }).then((res) => {
-                    res.forEach((s) =>
+                }).then((deleted) => {
+                    deleted.forEach((s) =>
                         fancyLog(ansiColors.red(s) + ' was deleted')
                     )
                     // stat
@@ -76,14 +76,14 @@ module.exports = function (Compiler) {
             return del(this.getOutputPath(paths), {
                 cwd: this.baseDir,
                 force: true,
-            }).then((res) => {
-                res.forEach((s) => fancyLog(ansiColors.red(s) + ' was deleted'))
+            }).then((deleted) => {
+                deleted.forEach((s) =>
+                    fancyLog(ansiColors.red(s) + ' was deleted')
+                )
                 // 更新缓存
-                paths.forEach((p) => {
-                    let i = this._fileList.indexOf(p)
-                    if (i >= 0) this._fileList.splice(i, 1)
-                })
+                paths.forEach((p) => remove(this._fileList, p))
                 this.saveFileList()
+                return deleted
             })
         },
         // 获取输出文件路径

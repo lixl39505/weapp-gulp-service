@@ -1,8 +1,15 @@
 const GulpError = require('internal/gulp-error')
+const Vinyl = require('vinyl')
+
+let file = new Vinyl({
+    base: '/',
+    path: '/test.js',
+    contents: Buffer.from(''),
+})
 
 describe('gulp-error', function () {
     it('create', function () {
-        var err = new GulpError('test', { path: '/test.js' }, 'not found')
+        var err = new GulpError('test', file, 'not found')
 
         err.name.should.equal('Test') // pascalCase
         err.message.should.equal(`not found \nGulpFile: /test.js`)
@@ -10,10 +17,7 @@ describe('gulp-error', function () {
     })
 
     it('partial', function () {
-        var err = new GulpError.partial('Foo')(
-            { path: '/test.js' },
-            'not found'
-        )
+        var err = new GulpError.partial('Foo')(file, 'not found')
 
         err.name.should.equal('Foo')
         err.message.should.equal(`not found \nGulpFile: /test.js`)

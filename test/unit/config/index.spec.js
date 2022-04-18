@@ -34,31 +34,11 @@ describe('config', function () {
         config.env.mode.should.equal('prod')
         config.env.NODE_ENV.should.equal('production')
         config.env.CUSTOM_TAB_BAR.should.equal('true')
-        // check app
-        config.app.should.eql({
-            description: 'template',
-            miniprogramRoot: 'dist/',
-            setting: {
-                es6: true,
-                packNpmManually: true,
-                packNpmRelationList: [
-                    {
-                        packageJsonPath: './package.json',
-                        miniprogramNpmDistDir: './dist',
-                    },
-                ],
-            },
-        })
         // check tasks
-
-        // img: {
-        //     test: ({ imgType }) => `./**/*.{${imgType.join(',')}}`,
-        // },
         var imgTask = config.tasks.img
         imgTask.test.should.a('function')
         imgTask.test(config).should.eql('./**/*.{jpg,png,svg,webp,gif}')
-
-        // others
+        // check others
         config.output.should.equal('dist')
         config.source.should.equal('src')
         config.lessVar.should.equal('./dark.less')

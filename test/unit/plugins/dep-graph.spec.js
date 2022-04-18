@@ -6,38 +6,32 @@ const Vinyl = require('vinyl')
 const { es6ImportReg } = require('config/constants')
 const { wgsResolve } = require('core/compiler').prototype
 const { fixture, pathify } = require('~h')
-const fakeCompilerUse = require('~f/compiler-use')
+const fakeCompilerHooks = require('~f/compiler-hooks')
 //
-let Compiler,
-    next = () => {},
-    depGraph,
-    context,
-    hooks
+let Compiler, depGraph, context
 
 describe('plugin-dep-graph', function () {
     beforeEach(function () {
         // reset
-        Compiler = fakeCompilerUse()
+        Compiler = fakeCompilerHooks()
         depGraph = proxyquire('plugins/dep-graph', {})
         // install
         depGraph(Compiler)
-        // init
+        // mock
         context = new Compiler()
         context.sourceDir = fixture()
         context.saveDepGraph = sinon.fake(context.saveDepGraph._original)
         context.wgsResolve = sinon.fake(wgsResolve)
-        hooks = Compiler.installHook.firstCall.returnValue
-        // first run
-        hooks.init.call(context, { next })
-        hooks.beforeCompile.call(context, { next })
     })
 
     it('install', function () {
         Compiler.installHook.called.should.equal(true)
 
-        context._depGraph.should.eql({})
-        context._reverseTimes.should.eql(0)
-        context._gw.should.eql(0)
+        return context.run().then(() => {
+            context._depGraph.should.eql({})
+            context._reverseTimes.should.eql(0)
+            context._gw.should.eql(0)
+        })
     })
 
     it('dep manage', function () {
@@ -65,88 +59,93 @@ describe('plugin-dep-graph', function () {
                 },
             })
 
-        // depend
-        const options = { matchers: [es6ImportReg] }
-        context.depend(a, options)
-        context.depend(b, options)
-        context.depend(c, {
-            matchers: [() => ['../img/wx.png']],
-        })
-        // depend duplicate
-        context.depend(a, options)
-        context.depend(c, options)
-        // depend flag
-        a.context.depended.should.equal(true)
-        b.context.depended.should.equal(true)
-        c.context.depended.should.equal(true)
-        // dependencies
-        const nodeA = context.getGraphNode(a),
-            nodeB = context.getGraphNode(b),
-            nodeC = context.getGraphNode(c)
+        return context.run().then(() => {
+            // depend
+            const options = { matchers: [es6ImportReg] }
+            context.depend(a, options)
+            context.depend(b, options)
+            context.depend(c, {
+                matchers: [() => ['../img/wx.png']],
+            })
+            // depend duplicate
+            context.depend(a, options)
+            context.depend(c, options)
+            // depend flag
+            a.context.depended.should.equal(true)
+            b.context.depended.should.equal(true)
+            c.context.depended.should.equal(true)
+            // dependencies
+            const nodeA = context.getGraphNode(a),
+                nodeB = context.getGraphNode(b),
+                nodeC = context.getGraphNode(c)
 
-        nodeA.should.eql({
-            path: pathify('/js/a.js'),
-            dependencies: [pathify('/js/b.js')],
-            requiredBy: [],
-        })
-        nodeB.should.eql({
-            path: pathify('/js/b.js'),
-            dependencies: [pathify('/js/c.js')],
-            requiredBy: [],
-        })
-        nodeC.should.eql({
-            path: pathify('/js/c.js'),
-            dependencies: [pathify('/img/wx.png'), pathify('/.env/APP_SERVER')],
-            requiredBy: [],
-        })
-
-        // reverseDep
-        const expectGraph = {
-            [pathify('/js/a.js')]: {
+            nodeA.should.eql({
                 path: pathify('/js/a.js'),
                 dependencies: [pathify('/js/b.js')],
                 requiredBy: [],
-            },
-            [pathify('/js/b.js')]: {
+            })
+            nodeB.should.eql({
                 path: pathify('/js/b.js'),
                 dependencies: [pathify('/js/c.js')],
-                requiredBy: [pathify('/js/a.js')],
-            },
-            [pathify('/js/c.js')]: {
+                requiredBy: [],
+            })
+            nodeC.should.eql({
                 path: pathify('/js/c.js'),
                 dependencies: [
                     pathify('/img/wx.png'),
                     pathify('/.env/APP_SERVER'),
                 ],
-                requiredBy: [pathify('/js/b.js')],
-            },
-        }
-        context.reverseDep()
-        context._depGraph.should.eql(expectGraph)
-        context.query('depGraph').should.eql(expectGraph)
+                requiredBy: [],
+            })
 
-        // traceReverseDep
-        context
-            .traceReverseDep(c.path)
-            .should.eql([pathify('/js/b.js'), pathify('/js/a.js')])
+            // reverseDep
+            const expectGraph = {
+                [pathify('/js/a.js')]: {
+                    path: pathify('/js/a.js'),
+                    dependencies: [pathify('/js/b.js')],
+                    requiredBy: [],
+                },
+                [pathify('/js/b.js')]: {
+                    path: pathify('/js/b.js'),
+                    dependencies: [pathify('/js/c.js')],
+                    requiredBy: [pathify('/js/a.js')],
+                },
+                [pathify('/js/c.js')]: {
+                    path: pathify('/js/c.js'),
+                    dependencies: [
+                        pathify('/img/wx.png'),
+                        pathify('/.env/APP_SERVER'),
+                    ],
+                    requiredBy: [pathify('/js/b.js')],
+                },
+            }
+            context.reverseDep()
+            context._depGraph.should.eql(expectGraph)
+            context.query('depGraph').should.eql(expectGraph)
 
-        // addDep
-        context.addDep(b, fixture('js/c.js')) // duplicate
-        context.addDep(b, [
-            fixture('js/d.js'), // new
-        ])
-        nodeB.dependencies.should.eql([
-            pathify('/js/c.js'),
-            pathify('/js/d.js'),
-        ])
+            // traceReverseDep
+            context
+                .traceReverseDep(c.path)
+                .should.eql([pathify('/js/b.js'), pathify('/js/a.js')])
 
-        // removeDep
-        context.removeDep(a, fixture('js/b.js'))
-        nodeA.dependencies.should.eql([])
-        nodeB.requiredBy.should.eql([])
+            // addDep
+            context.addDep(b, fixture('js/c.js')) // duplicate
+            context.addDep(b, [
+                fixture('js/d.js'), // new
+            ])
+            nodeB.dependencies.should.eql([
+                pathify('/js/c.js'),
+                pathify('/js/d.js'),
+            ])
 
-        // remove nodes
-        context.removeGraphNodes(c)
-        should.not.exist(context.getGraphNode(c))
+            // removeDep
+            context.removeDep(a, fixture('js/b.js'))
+            nodeA.dependencies.should.eql([])
+            nodeB.requiredBy.should.eql([])
+
+            // remove nodes
+            context.removeGraphNodes(c)
+            should.not.exist(context.getGraphNode(c))
+        })
     })
 })

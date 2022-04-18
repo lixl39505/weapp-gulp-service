@@ -45,11 +45,21 @@ describe('watcher', function () {
                 return sinon.fake.resolves(taskConfig)
             },
             incrementCompile: sinon.fake(),
-            cleanSpec: sinon.fake(),
+            cleanSpec: sinon.fake(function (expired) {
+                return Promise.resolve(expired)
+            }),
             removeGraphNodes: sinon.fake(),
             removeCache: sinon.fake(),
             nextTask(fn) {
                 fn(nextStub)
+            },
+            fire(name, payload) {
+                // 删除文件后清理cache/deps
+                if (name === 'clean') {
+                    let { expired } = payload
+                    this.removeGraphNodes(expired)
+                    this.removeCache(expired)
+                }
             },
         }
         gulpStub = {

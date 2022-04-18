@@ -14,6 +14,8 @@ class GulpError extends Error {
         })
         // reuse stack
         this.stack = error.stack
+        // keep file
+        this.file = file.clone()
     }
 }
 

@@ -5,6 +5,7 @@ const { getPkgJson } = require('~h')
 const defaults = require('./defaults'),
     pkgJson = getPkgJson()
 
+// 提供gulp task测试所需的session上下文对象
 module.exports = function () {
     const options = defaults(),
         baseDir = path.dirname(options.config),

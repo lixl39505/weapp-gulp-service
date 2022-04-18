@@ -4,6 +4,17 @@ const Vinyl = require('vinyl')
 const fancyLog = require('fancy-log')
 const { debounce, type, checksum } = require('../utils/helper')
 
+const opsExclude = [
+    'env',
+    'args',
+    'app',
+    'config',
+    'output',
+    'source',
+    'ignore',
+    'tasks',
+]
+
 // 获取唯一id
 function uid(file) {
     return path.resolve(file.path).replace(file.base, '')
@@ -20,6 +31,11 @@ const hooks = {
 
         next()
     },
+    clean({ next, expired }) {
+        // 清理缓存
+        this.removeCache(expired)
+        next()
+    },
     beforeCompile({ next }) {
         this._hitTimes = 0
         this._cacheTimes = 0
@@ -27,31 +43,7 @@ const hooks = {
         //
         this._lastVersion = this.query('version')
         this._isOutputDirExist = fs.existsSync(this.outputDir)
-
-        let pluginOptions = Object.assign({}, this.options)
-
-        ;[
-            'env',
-            'args',
-            'app',
-            'config',
-            'output',
-            'source',
-            'ignore',
-            'tasks',
-        ].forEach((v) => delete pluginOptions[v])
-
-        this._isOptionsChanged = this.checkFileChanged({
-            path: path.join(this.baseDir, 'config'),
-            contents: Buffer.from(
-                JSON.stringify(pluginOptions, (key, value) => {
-                    if (typeof value === 'function') {
-                        return value.toString()
-                    }
-                    return value
-                })
-            ),
-        })
+        this._isOptionsChanged = this.checkOptionsChanged()
 
         next()
     },
@@ -61,6 +53,10 @@ const hooks = {
             this.save('version', this._version)
         }
 
+        next()
+    },
+    taskerror({ next, error }) {
+        error && error.file && this.removeCache(error.file)
         next()
     },
 }
@@ -129,7 +125,7 @@ const methods = {
         this._hitTimes++
         return true
     },
-    // 校验文件内容是否发生改变
+    // 检查文件内容是否发生改变
     checkFileChanged(file, settings) {
         settings = Object.assign(
             {
@@ -161,6 +157,24 @@ const methods = {
             this.saveChecksums()
             return true
         }
+    },
+    // 检查options是否发生改变
+    checkOptionsChanged() {
+        let pluginOptions = Object.assign({}, this.options)
+
+        opsExclude.forEach((v) => delete pluginOptions[v])
+
+        return this.checkFileChanged({
+            path: path.join(this.baseDir, 'config'),
+            contents: Buffer.from(
+                JSON.stringify(pluginOptions, (key, value) => {
+                    if (typeof value === 'function') {
+                        return value.toString()
+                    }
+                    return value
+                })
+            ),
+        })
     },
     // 移除缓存
     removeCache(files) {

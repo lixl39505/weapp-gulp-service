@@ -3,9 +3,10 @@ const path = require('path')
 const proxyquire = require('proxyquire')
 const Vinyl = require('vinyl')
 const sinon = require('sinon')
+const { checksum } = require('utils/helper')
 //
 const { fixture, pathify } = require('~h')
-const fakeCompilerUse = require('~f/compiler-use')
+const fakeCompilerHooks = require('~f/compiler-hooks')
 //
 let Compiler,
     fsStub = {
@@ -13,29 +14,28 @@ let Compiler,
             return true
         },
     },
-    next = () => {},
     foo,
     fooId,
     compileCache,
-    context,
-    hooks
+    context
+
+function makeFile(path, content = '') {
+    return new Vinyl({
+        base: fixture(),
+        path,
+        contents: Buffer.from(content),
+    })
+}
 
 // from compiler-cache
 function uid(file) {
     return path.resolve(file.path).replace(file.base, '')
 }
 
-// 模拟一次编译
-function run() {
-    hooks.init.call(context, { next })
-    hooks.beforeCompile.call(context, { next })
-    hooks.afterCompile.call(context, { next })
-}
-
 describe('plugin-compile-cache', function () {
     beforeEach(function () {
         // reset
-        Compiler = fakeCompilerUse()
+        Compiler = fakeCompilerHooks()
         compileCache = proxyquire('plugins/compile-cache', {
             fs: fsStub,
             'fancy-log': sinon.fake(),
@@ -50,41 +50,106 @@ describe('plugin-compile-cache', function () {
         fooId = uid(foo)
         // install
         compileCache(Compiler)
-        // init
+        // mock
         context = new Compiler()
+        context.options = {}
         context.sourceDir = fixture()
         context.baseDir = path.dirname(fixture())
         context.saveCompileCache = sinon.fake(
             context.saveCompileCache._original
         )
         context.saveChecksums = sinon.fake(context.saveChecksums._original)
-        hooks = Compiler.installHook.firstCall.returnValue
-        // 先执行一次，以便生成缓存
-        run()
+        context.removeCache = sinon.fake(context.removeCache)
+        // 预生成options checksum，即默认options未发生变动
+        context.save('checksums', {
+            config: checksum('{}'),
+        })
     })
 
-    it('first run', function () {
+    it('install', function () {
         Compiler.installHook.called.should.equal(true)
 
-        should.exist(context.checkFileCached)
-        should.exist(context.removeCache)
-        should.exist(context.saveCompileCache)
+        return context.run().then(() => {
+            should.exist(context.checkFileCached)
+            should.exist(context.removeCache)
+            should.exist(context.saveCompileCache)
 
-        context._compiled.should.eql({})
-        context._hitTimes.should.eql(0)
-        context._cacheTimes.should.eql(0)
-        context._cw.should.eql(0)
+            context.removeCache.called.should.equal(true)
+            context.removeCache.firstArg.should.eql([])
+
+            context._compiled.should.eql({})
+            context._hitTimes.should.eql(0)
+            context._cacheTimes.should.eql(0)
+            context._cw.should.eql(0)
+        })
+    })
+
+    it('file expired', function () {
+        let lastCompiled = {
+            [pathify('/js/a.js')]: 1,
+            [pathify('/js/b.js')]: 1,
+            [pathify('/js/c.js')]: 1,
+        }
+        context.save('compiled', lastCompiled)
+
+        return context
+            .run()
+            .then(() => {
+                context._compiled.should.eql(lastCompiled)
+                context.fire('clean', {
+                    expired: [fixture('js/a.js'), fixture('js/b.js')],
+                })
+            })
+            .then(() => {
+                context._compiled.should.eql({
+                    [pathify('/js/c.js')]: 1,
+                })
+            })
+
+        // compiler.removeGraphNodes.called.should.equal(true)
+        // compiler.removeGraphNodes.firstArg.should.eql(expired)
+        // compiler.reverseDep.called.should.equal(true)
+    })
+
+    it('gulp task error', function () {
+        let lastCompiled = {
+            [pathify('/js/a.js')]: 1,
+            [pathify('/js/b.js')]: 1,
+            [pathify('/js/c.js')]: 1,
+        }
+        context.save('compiled', lastCompiled)
+
+        return context
+            .run()
+            .then(() => {
+                context._compiled.should.eql(lastCompiled)
+                context.fire('taskerror', {
+                    error: {
+                        file: makeFile(fixture('js/b.js')),
+                    },
+                })
+            })
+            .then(() => {
+                context._compiled.should.eql({
+                    [pathify('/js/a.js')]: 1,
+                    [pathify('/js/c.js')]: 1,
+                })
+            })
     })
 
     it('new file', function () {
-        let cached = context.checkFileCached(foo)
-        cached.should.equal(false) // 未缓存
-        context._compiled[pathify('/js/a.js')].should.equal(foo.stat.mtimeMs) // 更新时间戳
-        context._hitTimes.should.eql(0)
-        context._cacheTimes.should.eql(1)
-        context._cw.should.eql(1)
-        context.query('compiled').should.eql({
-            [fooId]: foo.stat.mtimeMs,
+        return context.run().then(() => {
+            let cached = context.checkFileCached(foo)
+
+            // 未缓存
+            cached.should.equal(false)
+            context._hitTimes.should.eql(0)
+            context._cacheTimes.should.eql(1)
+            context._cw.should.eql(1)
+            // 更新时间戳
+            context.query('compiled').should.eql({
+                [fooId]: foo.stat.mtimeMs,
+            })
         })
     })
 
@@ -93,11 +158,13 @@ describe('plugin-compile-cache', function () {
             [fooId]: 1, // very long ago
         }
         context.save('compiled', lastCompiled)
-        run()
 
-        let cached = context.checkFileCached(foo)
-        cached.should.equal(false)
-        context._hitTimes.should.equal(0)
+        return context.run().then(() => {
+            let cached = context.checkFileCached(foo)
+
+            cached.should.equal(false)
+            context._hitTimes.should.equal(0)
+        })
     })
 
     it('env change', function () {
@@ -118,59 +185,74 @@ describe('plugin-compile-cache', function () {
                 requiredBy: [],
             }
         })
-        run()
 
-        let cached = context.checkFileCached(foo)
-        cached.should.equal(false)
-        context._hitTimes.should.equal(0)
+        return context.run().then(() => {
+            let cached = context.checkFileCached(foo)
+
+            cached.should.equal(false)
+            context._hitTimes.should.equal(0)
+        })
     })
 
     it('pkg version change', function () {
+        let lastCompiled = {
+            [fooId]: foo.stat.mtimeMs, // newest
+        }
+        context.save('compiled', lastCompiled)
         context._version = '1.2.0'
-        run()
 
-        let cached = context.checkFileCached(foo)
-        cached.should.equal(false)
-        context._hitTimes.should.equal(0)
+        return context.run().then(() => {
+            let cached = context.checkFileCached(foo)
+
+            cached.should.equal(false)
+            context._hitTimes.should.equal(0)
+        })
     })
 
     it('options change', function () {
-        let checksum1 = context._checksums.config
+        let checksum1 = context.query('checksums').config
         // 修改options
         context.options = {
             callback() {},
         }
-        // rerun
-        run()
-        let checksum2 = context._checksums.config
 
-        checksum1.should.not.equal(checksum2)
-        context._isOptionsChanged.should.equal(true)
+        console.log('checksum1: ', checksum1)
+
+        return context.run().then(() => {
+            let checksum2 = context.query('checksums').config
+
+            console.log('checksum2: ', checksum2)
+
+            checksum1.should.not.equal(checksum2)
+            context._isOptionsChanged.should.equal(true)
+        })
     })
 
-    it('checkFileChange', function () {
-        // 生成checksum
-        context.checkFileChanged(foo, {
-            namespace() {
-                return 'views'
-            },
-        })
-        let newFile = foo.clone(),
+    it('content change', function () {
+        return context.run().then(() => {
+            // 生成checksum
+            context.checkFileChanged(foo, {
+                namespace() {
+                    return 'views'
+                },
+            })
+            let newFile = foo.clone(),
+                change = context.checkFileChanged(newFile, {
+                    namespace() {
+                        return 'views'
+                    },
+                })
+
+            change.should.equal(false)
+
+            newFile.contents = Buffer.from('var b = 1')
             change = context.checkFileChanged(newFile, {
                 namespace() {
                     return 'views'
                 },
             })
-
-        change.should.equal(false)
-
-        newFile.contents = Buffer.from('var b = 1')
-        change = context.checkFileChanged(newFile, {
-            namespace() {
-                return 'views'
-            },
+            change.should.equal(true)
         })
-        change.should.equal(true)
     })
 
     it('hit cache', function () {
@@ -178,25 +260,28 @@ describe('plugin-compile-cache', function () {
             [fooId]: foo.stat.mtimeMs, // no content change
         }
 
-        context._compiled = lastCompiled
-        context._isOptionsChanged = false
+        context.save('compiled', lastCompiled)
         context.getGraphNode = sinon.fake.returns({
             path: fooId,
             dependencies: [],
             requiredBy: [],
         })
 
-        let cached = context.checkFileCached(foo)
-        cached.should.equal(true)
-        context._hitTimes.should.equal(1)
+        return context.run().then(() => {
+            let cached = context.checkFileCached(foo)
+            cached.should.equal(true)
+            context._hitTimes.should.equal(1)
+        })
     })
 
     it('remove cache', function () {
-        context._compiled = {
+        context.save('compiled', {
             [fooId]: 233,
-        }
+        })
 
-        context.removeCache(fixture('js/a.js'))
-        should.not.exist(context._compiled[fooId])
+        return context.run().then(() => {
+            context.removeCache(fixture('js/a.js'))
+            should.not.exist(context.query('compiled')[fooId])
+        })
     })
 })

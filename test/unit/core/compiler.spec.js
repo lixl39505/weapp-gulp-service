@@ -380,11 +380,6 @@ describe('compiler', function () {
                 .then(() => {
                     let expired = [fixture('a.js')]
                     compiler.cleanExpired.called.should.equal(true)
-                    compiler.removeGraphNodes.called.should.equal(true)
-                    compiler.removeGraphNodes.firstArg.should.eql(expired)
-                    compiler.reverseDep.called.should.equal(true)
-                    compiler.removeCache.called.should.equal(true)
-                    compiler.removeCache.firstArg.should.eql(expired)
                 })
                 // check runTasks
                 .then(() => {
