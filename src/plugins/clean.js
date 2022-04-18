@@ -69,11 +69,11 @@ module.exports = function (Compiler) {
             }
         },
         // 清理指定编译文件
-        cleanSpec(paths) {
+        cleanSpec(expired) {
             // cleanSpec(filePath)
-            if (type(paths) !== 'array') paths = [paths]
+            if (type(expired) !== 'array') expired = [expired]
 
-            return del(this.getOutputPath(paths), {
+            return del(this.getOutputPath(expired), {
                 cwd: this.baseDir,
                 force: true,
             }).then((deleted) => {
@@ -81,9 +81,9 @@ module.exports = function (Compiler) {
                     fancyLog(ansiColors.red(s) + ' was deleted')
                 )
                 // 更新缓存
-                paths.forEach((p) => remove(this._fileList, p))
+                expired.forEach((p) => remove(this._fileList, p))
                 this.saveFileList()
-                return deleted
+                return expired
             })
         },
         // 获取输出文件路径
