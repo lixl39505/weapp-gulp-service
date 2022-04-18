@@ -1,6 +1,5 @@
 const sinon = require('sinon')
 const proxyquire = require('proxyquire')
-const ArrError = require('aggregate-error')
 const { src } = require('gulp')
 //
 const { fixture, stream } = require('~h')
@@ -39,22 +38,12 @@ describe('gulp-build-npm', function () {
                     if (!project) {
                         return cb(new Error('Project root must be specified'))
                     }
-                    if (!process.env.WE_APP_PRIVATE_KEY_PATH) {
-                        errors.push(
-                            new Error('Private key file path not provided')
-                        )
+                    if (
+                        !process.env.WE_APP_PRIVATE_KEY_PATH &&
+                        !process.env.WE_CLI
+                    ) {
+                        return cb(new Error('Wechat interface call failed'))
                     }
-                    if (!process.env.WE_CLI) {
-                        errors.push(
-                            new Error(
-                                'Wechat developer tool cli path not provided'
-                            )
-                        )
-                    }
-                    if (errors.length == 2) {
-                        return cb(new ArrError(errors, 'wx failed'))
-                    }
-
                     // npm build success
                     cb()
                 })
@@ -136,23 +125,18 @@ describe('gulp-build-npm', function () {
             })
     })
 
-    it('wx build npm fail, no CLI / no PRIVATE_KEY', function (done) {
+    it('wx build npm fail, no WE_CLI && no PRIVATE_KEY', function (done) {
         src([fixture('json/package.json')])
             .pipe(gulpContext(session))
             .pipe(gulpBuildNpm({ project: session.baseDir }))
             .on('error', function (err) {
-                err.message.should.include(
-                    'Error: Private key file path not provided'
-                )
-                err.message.should.include(
-                    'Error: Wechat developer tool cli path not provided'
-                )
+                err.message.should.include('Wechat interface call failed')
 
                 done()
             })
     })
 
-    it('wx build npm success when tolerant', function (done) {
+    it('wx build npm fail when tolerant', function (done) {
         src([fixture('json/package.json')])
             .pipe(gulpContext(session))
             .pipe(
