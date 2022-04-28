@@ -649,11 +649,11 @@ class Compiler extends Events {
     }
 
     // 插件安装
-    static use(plugin) {
+    static use(plugin, options) {
         if (plugins.indexOf(plugin) >= 0) return
 
         plugins.push(plugin)
-        plugin(Compiler)
+        plugin(Compiler, options)
     }
     // 添加hook
     static installHook(name, handler) {

@@ -138,7 +138,13 @@ function createCompiler(stub = {}, plugins = []) {
         )
     )
     // use plugins
-    plugins.forEach((v) => Compiler.use(v))
+    plugins.forEach((v) => {
+        if (Array.isArray(v)) {
+            Compiler.use(v[0], v[1])
+        } else {
+            Compiler.use(v)
+        }
+    })
     // new instance
     let ins = new Compiler()
     // fake extension api
@@ -515,21 +521,22 @@ describe('compiler', function () {
         let onInit = sinon.fake(({ next }) => next()),
             onClean = sinon.fake(({ next }) => next()),
             onBeforeCompile = sinon.fake(({ next }) => next()),
-            onAfterCompile = sinon.fake(({ next }) => next()),
-            getName = sinon.fake.returns('foo')
+            onAfterCompile = sinon.fake(({ next }) => next())
 
-        function myPlugin(Compiler) {
+        let myPlugin = sinon.fake(function (Compiler, options) {
             Compiler.installHook({
                 init: onInit,
                 clean: onClean,
                 beforeCompile: onBeforeCompile,
                 afterCompile: onAfterCompile,
             })
-            Compiler.prototype.$getName = getName
-        }
+            Compiler.prototype.$getName = function () {
+                return 'foo'
+            }
+        })
 
         let compiler = createCompiler({}, [
-            myPlugin,
+            [myPlugin, { name: 'test' }],
             // redundent
             myPlugin,
         ])
@@ -539,7 +546,9 @@ describe('compiler', function () {
             onClean.callCount.should.equal(1)
             onBeforeCompile.callCount.should.equal(1)
             onAfterCompile.callCount.should.equal(1)
+
             compiler.$getName().should.equal('foo')
+            myPlugin.firstCall.args[1].should.eql({ name: 'test' })
         })
     })
 
