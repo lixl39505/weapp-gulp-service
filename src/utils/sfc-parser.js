@@ -161,8 +161,10 @@ class SfcParser extends htmlparser2.Parser {
                     parser.wxml += '-->'
                 },
             }
-
+        
         super(handler, {
+            lowerCaseTags: false,
+            lowerCaseAttributeNames: false,
             recognizeSelfClosing: true,
         })
 

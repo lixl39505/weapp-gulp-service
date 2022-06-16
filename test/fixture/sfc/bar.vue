@@ -1,6 +1,6 @@
 <template>
     <view>
-        <bar-title>{{ name }}</bar-title>
+        <bar-title showContent>{{ name }}</bar-title>
     </view>
 </template>
 

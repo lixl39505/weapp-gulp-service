@@ -13,7 +13,8 @@ module.exports = function (options) {
         var content = file.contents.toString('utf8'),
             pkg,
             nodeStat,
-            miniStat
+            miniStat,
+            now = new Date()
 
         try {
             var nodePath = path.resolve(file.path, '../node_modules'),
@@ -23,9 +24,9 @@ module.exports = function (options) {
                 miniPath && path.resolve(miniPath.output, 'miniprogram_npm')
 
             nodeStat = miniStat = {
-                birthtime: new Date(0),
-                ctime: new Date(0),
-                mtime: new Date(0),
+                birthtime: now,
+                ctime: now,
+                mtime: now,
             }
             // packageJson
             pkg = JSON.parse(content)

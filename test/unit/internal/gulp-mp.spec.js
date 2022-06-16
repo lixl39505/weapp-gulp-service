@@ -86,7 +86,7 @@ describe('gulp-mp', function () {
                     if (extname == '.wxml') {
                         compare = minify('html', contents).then((code) => {
                             code.should.equal(
-                                `<view><bar-title>{{ name }}</bar-title></view>`
+                                `<view><bar-title showContent>{{ name }}</bar-title></view>`
                             )
                         })
                     }
