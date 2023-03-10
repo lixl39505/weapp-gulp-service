@@ -3,7 +3,7 @@ const through2 = require('through2')
 const vinyl = require('vinyl')
 const camelcase = require('camelcase')
 const dashify = require('dashify')
-const { loadAndResolveLessVars } = require('less-var-to-js')
+const { loadAndResolveLessVars } = require('../utils/less-var-to-js')
 
 function norStr(s) {
     return s.replace(/\\"/g, "'").replace(/"/g, '')
