@@ -37,9 +37,6 @@ module.exports = function (Compiler) {
                 }), // 当前文件列表
                 expired = []
 
-            // 将sourceDir视为根目录
-            current = current.map((v) => v.replace(sourceDir, ''))
-
             // 寻找已经被删除的文件
             this._fileList.forEach((v) => {
                 if (current.indexOf(v) < 0) {

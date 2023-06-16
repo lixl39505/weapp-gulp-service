@@ -1,4 +1,5 @@
 const sinon = require('sinon')
+const path = require('path')
 const { src } = require('gulp')
 const { fixture, stream, afterN } = require('~h')
 const compilerSession = require('~f/compiler-session')
@@ -19,15 +20,17 @@ describe('gulp-less-var', function () {
 
         var varJs = '',
             varXss = '',
+            varsPath = path.join('/variables.less'),
+            defaultPath = path.join('/default.less'),
             hooks = {},
             graph = {
-                '/variables.less': {
-                    path: '/variables.less',
-                    dependencies: ['/default.less'],
+                [varsPath]: {
+                    path: varsPath,
+                    dependencies: [defaultPath],
                 },
-                '/default.less': {
-                    path: '/default.less',
-                    dependencies: ['/variables.less'],
+                [defaultPath]: {
+                    path: defaultPath,
+                    dependencies: [varsPath],
                 },
             }
 
@@ -81,7 +84,7 @@ describe('gulp-less-var', function () {
                 varJs.should.equal(`export default {"primaryColor":"#123456"}`)
                 varXss.should.equal(`page {--primary-color: #123456;}`)
                 session.fire('afterCompile')
-                graph['/default.less'].dependencies.should.eql([])
+                graph[defaultPath].dependencies.should.eql([])
                 done()
             })
 

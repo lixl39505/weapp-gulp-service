@@ -180,9 +180,9 @@ describe('helper', function () {
     it('throttle', function (done) {
         let throttle = helper.throttle,
             cb = sinon.fake()
-        let t10 = throttle(10, cb)
+        let t10 = throttle(100, cb)
 
-        repeat(t10, 42, 1, () => {
+        repeat(t10, 40, 10, () => {
             cb.callCount.should.lessThan(10)
             done()
         })()
@@ -191,9 +191,9 @@ describe('helper', function () {
     it('debounce', function (done) {
         let debounce = helper.debounce,
             cb = sinon.fake()
-        let d10 = debounce(10, cb, { immediate: true })
+        let d10 = debounce(100, cb, { immediate: true })
 
-        repeat(d10, 42, 1, () => {
+        repeat(d10, 40, 10, () => {
             cb.callCount.should.equal(1)
             done()
         })()

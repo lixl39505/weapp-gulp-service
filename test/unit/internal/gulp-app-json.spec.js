@@ -100,8 +100,9 @@ describe('gulp-app-json', function () {
                 })
             )
             .on('error', (e) => {
+                // prettier-ignore
                 e.toString().should.eql(
-                    'GulpAppJson: platform:zfb not support \nGulpFile: /Users/july/workspace/open-source/wgs/test/fixture/json/app.json'
+                    `GulpAppJson: platform:zfb not support \nGulpFile: ${fixture('json/app.json')}`
                 )
 
                 done()
@@ -131,8 +132,9 @@ describe('gulp-app-json', function () {
                 })
             )
             .on('error', (e) => {
+                // prettier-ignore
                 e.toString().should.eql(
-                    "GulpAppJson: Invalid Route From app.json，only support 'path' or { path: '' } \nGulpFile: /Users/july/workspace/open-source/wgs/test/fixture/json/app.json"
+                    `GulpAppJson: Invalid Route From app.json，only support 'path' or { path: '' } \nGulpFile: ${fixture('json/app.json')}`
                 )
 
                 done()

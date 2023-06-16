@@ -7,6 +7,7 @@ const gulpStrJson5 = require('./gulp-str-json5')
 const gulpEnv = require('./gulp-env')
 const gulpAppJson = require('./gulp-app-json')
 const gulpDepend = require('./gulp-depend')
+const { toGlobPath } = require('../utils/helper')
 
 // .json文件
 module.exports = function (options = {}) {
@@ -56,9 +57,15 @@ module.exports = function (options = {}) {
                                 if (p.pages) {
                                     p.pages.forEach((v) => {
                                         if (v && v.path) {
-                                            reqs.push(path.join(p.root, v.path))
+                                            reqs.push(
+                                                toGlobPath(
+                                                    path.join(p.root, v.path)
+                                                )
+                                            )
                                         } else {
-                                            reqs.push(path.join(p.root, v))
+                                            reqs.push(
+                                                toGlobPath(path.join(p.root, v))
+                                            )
                                         }
                                     })
                                 }

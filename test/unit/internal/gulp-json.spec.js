@@ -1,7 +1,7 @@
 const proxyquire = require('proxyquire')
 const gulpRename = require('gulp-rename')
 const { src } = require('gulp')
-const { fixture, stream } = require('~h')
+const { fixture, stream, toGlobPath } = require('~h')
 const compilerSession = require('~f/compiler-session')
 //
 const gulpContext = require('internal/gulp-context')
@@ -14,7 +14,7 @@ describe('gulp-json', function () {
         gulpJson = proxyquire('internal/gulp-json', {
             'fast-glob': {
                 sync(patterns) {
-                    return [patterns.pop()]
+                    return [toGlobPath(patterns.pop())]
                 },
             },
         })

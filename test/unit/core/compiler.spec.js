@@ -271,12 +271,12 @@ describe('compiler', function () {
         return (
             compiler
                 .run()
-                // check tasks
+                // check taskConfig
                 .then(() => {
                     let ignore = [
                         '*.md',
-                        '/Users/july/workspace/open-source/wgs/test/dist/**',
-                        '/Users/july/workspace/open-source/wgs/test/.wgs/**',
+                        toGlobPath(path.join(compiler.baseDir, 'dist/**')),
+                        toGlobPath(path.join(compiler.baseDir, '.wgs/**')),
                         '**/node_modules/**',
                     ]
                     // js task

@@ -65,19 +65,23 @@ describe('plugin-clean', function () {
 
     it('clean up expired files', function (done) {
         // prepare
-        lastFiles = ['/js/a.js', '/js/b.js', '/sfc/bar.vue']
-        currentFiles = ['/js/a.js', '/css/new.css']
+        lastFiles = [
+            fixture('js/a.js'),
+            fixture('js/b.js'),
+            fixture('sfc/bar.vue'),
+        ]
+        currentFiles = [fixture('js/a.js'), fixture('css/new.css')]
         context.save('fileList', lastFiles)
 
         context
             .run()
             .then(() => context.cleanExpired())
             .then((expired) => {
-                expired.should.eql(['/js/b.js', '/sfc/bar.vue'])
-
+                expired.should.eql([fixture('js/b.js'), fixture('sfc/bar.vue')])
+                // prettier-ignore
                 context.getOutputPath.firstCall.returnValue.should.eql([
-                    toGlobPath(path.join(context.baseDir, 'dist/js/b.*')),
-                    toGlobPath(path.join(context.baseDir, 'dist/sfc/bar/**')),
+                    toGlobPath(path.join(context.outputDir, 'js/b.*')),
+                    toGlobPath(path.join(context.outputDir, 'sfc/bar/**')),
                 ])
 
                 context._expiredNum.should.equal(2)
