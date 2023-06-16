@@ -1,8 +1,8 @@
 // target
 let SfcParser = require('utils/sfc-parser')
 
-describe('helper', function () {
-    it('parse', function () {
+describe('utils', function () {
+    it('sfc-parser', function () {
         let content = `
 <template>
     <div active>
@@ -98,9 +98,9 @@ module.exports = {
     <text class="invalid"></text>
     <text></text>
 
-    <view wx:if="{{ inited }}" hidden="{{ show === false }}" class="qrcode" id="{{ id }}" align="{{{
-        name: prefix ? 'left' : 'right'
-    }}}" bind:click="onClick" catch:move="onMove" capture-bind="onBlur" capture-catch:focus mut-bind="onTarget" mut-touch="onTouch">
+    <view wx:if="{{ inited }}" hidden="{{ show === false }}" class="qrcode" id="{{ id }}" align="{{ {
+            name: prefix ? 'left' : 'right'
+        } }}" bind:click="onClick" catch:move="onMove" capture-bind:blur="onBlur" capture-catch:focus="onFocus" mut-bind:target="onTarget" mut-bind:touch="onTouch">
         {{ dot ? '' : displayValue > max ? max + '+' : displayValue }}
     </view>
     <view wx:elif="{{ loaded }}">loaded</view>

@@ -73,12 +73,13 @@ class SfcParser extends htmlparser2.Parser {
                             // :key="item.id" -> wx:key="id"
                             if (name === ':key') {
                                 name = 'wx:key'
-                                value = value.split('.')[1]
+                                value = value.split('.')
+                                value = value[value.length - 1]
                             }
                             // :prop="value" -> prop="{{ value }}"
                             else if (name.startsWith(':')) {
                                 name = name.slice(1)
-                                value = '{{ ' + value + ' }}'
+                                value = '{{ ' + value.trim() + ' }}'
                             }
                             // @event="handler" -> bind:event="handler"
                             // @event.stop="handdler" -> catch:event="handler"
@@ -90,8 +91,8 @@ class SfcParser extends htmlparser2.Parser {
                                 let sep = name.indexOf('.'),
                                     modifier = {}
                                 if (sep >= 0) {
-                                    name = name.slice(0, sep)
                                     modifier = name.slice(sep + 1)
+                                    name = name.slice(0, sep)
                                     // prettier-ignore
                                     if(modifier) modifier = modifier.split('.').reduce((acc, k) => (acc[k]=true, acc),{})
                                 }
@@ -126,8 +127,6 @@ class SfcParser extends htmlparser2.Parser {
                                     value = ''
                                 }
                             }
-                            // trim
-                            value = value.trim()
                             // join
                             if (value) {
                                 attrs += ` ${name}="${value}"`
