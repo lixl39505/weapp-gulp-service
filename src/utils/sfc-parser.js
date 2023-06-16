@@ -45,7 +45,8 @@ class SfcParser extends htmlparser2.Parser {
                     if (parser.root === 'template' && parser.level > 1) {
                         let attrs = ''
 
-                        // v-for="(item, index) in arr" -> wx:for="{{ arr }}" wx:for-index="index" wx:for-item="item"
+                        // From: v-for="(item, index) in arr"
+                        // to:   wx:for="{{ arr }}" wx:for-index="index" wx:for-item="item"
                         if (attributes['v-for']) {
                             let vfor = attributes['v-for']
                             delete attributes['v-for']
@@ -55,34 +56,51 @@ class SfcParser extends htmlparser2.Parser {
 
                             vfor = parseFor(vfor)
                             if (vfor.for) {
-                                attrs += ` wx:for={{ ${vfor.for} }}`
+                                attrs += ` wx:for="{{ ${vfor.for} }}"`
                                 if (vfor.alias && vfor.alias !== 'item') {
-                                    attrs += ` wx:for-item={{ ${vfor.alias} }}`
+                                    attrs += ` wx:for-item="{{ ${vfor.alias} }}"`
                                 }
-                                if (vfor.iterator1 && vfor.alias !== 'index') {
-                                    attrs += ` wx:for-index={{ ${vfor.iterator1} }}`
+                                if (
+                                    vfor.iterator1 &&
+                                    vfor.iterator1 !== 'index'
+                                ) {
+                                    attrs += ` wx:for-index="{{ ${vfor.iterator1} }}"`
                                 }
                             }
                         }
 
                         Object.entries(attributes).forEach(([name, value]) => {
-                            // :key="value" -> wx:key="value"
+                            // :key="item.id" -> wx:key="id"
                             if (name === ':key') {
                                 name = 'wx:key'
+                                value = value.split('.')[1]
                             }
                             // :prop="value" -> prop="{{ value }}"
                             else if (name.startsWith(':')) {
                                 name = name.slice(1)
                                 value = '{{ ' + value + ' }}'
                             }
-                            // @event="handler" -> bind:event="handler" or catch:event="handler"
+                            // @event="handler" -> bind:event="handler"
+                            // @event.stop="handdler" -> catch:event="handler"
+                            // @event.capture="handdler" -> capture-bind:event="handler"
+                            // @event.mut="handdler" -> mut-bind:event="handler"
+                            // 支持组合 @event.stop.capture，但一旦出现 mut, 则只能是 mut-bind:
                             else if (name.startsWith('@')) {
                                 name = name.slice(1)
-                                if (name.endsWith('.stop')) {
-                                    name = name.replace(/\.stop$/, '')
-                                    name = 'catch:' + name
-                                } else {
-                                    name = 'bind:' + name
+                                let sep = name.indexOf('.'),
+                                    modifier = {}
+                                if (sep >= 0) {
+                                    name = name.slice(0, sep)
+                                    modifier = name.slice(sep + 1)
+                                    // prettier-ignore
+                                    if(modifier) modifier = modifier.split('.').reduce((acc, k) => (acc[k]=true, acc),{})
+                                }
+                                if (modifier.mut) name = 'mut-bind:' + name
+                                else {
+                                    if (modifier.stop) name = 'catch:' + name
+                                    else name = 'bind:' + name
+                                    // prettier-ignore
+                                    if (modifier.capture) name = 'capture-' + name
                                 }
                             }
                             // directives
@@ -108,7 +126,8 @@ class SfcParser extends htmlparser2.Parser {
                                     value = ''
                                 }
                             }
-
+                            // trim
+                            value = value.trim()
                             // join
                             if (value) {
                                 attrs += ` ${name}="${value}"`
@@ -116,7 +135,7 @@ class SfcParser extends htmlparser2.Parser {
                                 attrs += ' ' + name
                             }
                         })
-
+                        // 元素别名
                         if (tagAlias[tagName]) {
                             tagName = tagAlias[tagName]
                         }
@@ -161,7 +180,7 @@ class SfcParser extends htmlparser2.Parser {
                     parser.wxml += '-->'
                 },
             }
-        
+
         super(handler, {
             lowerCaseTags: false,
             lowerCaseAttributeNames: false,

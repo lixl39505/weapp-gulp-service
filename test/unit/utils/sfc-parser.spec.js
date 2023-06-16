@@ -20,14 +20,21 @@ describe('helper', function () {
         v-show="show"
         class="qrcode"
         :id="id"
+        :align="   {
+            name: prefix ? 'left' : 'right'
+        }   "
         @click="onClick"
-        @move.stop="onMove">
+        @move.stop="onMove"
+        @blur.capture="onBlur"
+        @focus.stop.capture="onFocus"
+        @target.mut="onTarget"
+        @touch.mut.stop="onTouch">
         {{ dot ? '' : displayValue > max ? max + '+' : displayValue }}
     </div>
     <div v-else-if="loaded">loaded</div>
     <div v-else>loading</div>
     <div v-for="item in list"></div>
-    <div v-for="(stu, idx) in list" :key="name"></div>
+    <div v-for="(stu, idx) in list" :key="stu.name"></div>
 </template>
 
 <script>
@@ -80,7 +87,7 @@ module.exports = {
         })
         parser.write(content)
         parser.end()
-
+        // compare wxml
         parser.wxml.should.equal(`
     <view active>
         <input id="selfClose"></input>
@@ -91,14 +98,17 @@ module.exports = {
     <text class="invalid"></text>
     <text></text>
 
-    <view wx:if="{{ inited }}" hidden="{{ show === false }}" class="qrcode" id="{{ id }}" bind:click="onClick" catch:move="onMove">
+    <view wx:if="{{ inited }}" hidden="{{ show === false }}" class="qrcode" id="{{ id }}" align="{{{
+        name: prefix ? 'left' : 'right'
+    }}}" bind:click="onClick" catch:move="onMove" capture-bind="onBlur" capture-catch:focus mut-bind="onTarget" mut-touch="onTouch">
         {{ dot ? '' : displayValue > max ? max + '+' : displayValue }}
     </view>
     <view wx:elif="{{ loaded }}">loaded</view>
     <view wx:else>loading</view>
-    <view wx:for={{ list }}></view>
-    <view wx:for={{ list }} wx:for-item={{ stu }} wx:for-index={{ idx }} wx:key="name"></view>
+    <view wx:for="{{ list }}"></view>
+    <view wx:for="{{ list }}" wx:for-item="{{ stu }}" wx:for-index="{{ idx }}" wx:key="name"></view>
 `)
+        // compare js
         parser.js.should.equal(`import helper from '_u/helper'
 global.wComponent({
     name: 'VanBadge',
@@ -119,10 +129,12 @@ global.wComponent({
     },
 })
 `)
+        // compare json
         parser.json.should.equal(`module.exports = {
     component: true,
     usingComponents: {},
 }`)
+        // compare wxss
         parser.style.should.eql([
             { lang: 'less', text: `.main { color: red;}` },
             { lang: 'css', text: `.main { font-size: 20px;}` },
