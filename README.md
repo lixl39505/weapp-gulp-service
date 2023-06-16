@@ -4,24 +4,23 @@ weapp-gulp-service 是一款基于 gulp 实现的微信小程序预编译开发�
 
 语法增强：
 
-1. 支持 less
-2. 支持 px 自动转 rpx
-3. 支持本地图片转 base64
-4. 支持路径别名 alias
-5. 支持设置环境变量
-6. 支持 json5 语法
-7. 扩展 app.json，支持表达力更好的路由写法
-8. 支持.vue 单文件开发体验
-9. 支持自动构建 npm
-10. 支持命令行上传代码
+1. 支持 less；
+2. 支持 px 自动转 rpx；
+3. 支持本地图片转 base64；
+4. 支持路径别名 alias；
+5. 支持设置环境变量（类似 vue-cli 的 .env 文件）；
+6. 支持 json5 语法；
+7. 扩展 app.json，支持表达力更好的路由写法；
+8. 支持.vue 单文件开发（兼容大部分 v-指令）；
 
 工具特性：
 
-1. 0 配置使用
-1. 支持增量编译(watch 模式)
-1. 支持编译缓存
-1. 支持自定义 task
-1. 支持插件扩展
+1. 0 配置使用；
+1. 支持增量编译；
+1. 支持自定义 task；
+1. 支持插件扩展；
+1. 支持自动构建 npm（需开启 wxDevtool cli 服务）；
+1. 支持命令行上传代码（需集成 `miniprogram-ci`）；
 
 ## 安装/运行
 
@@ -49,62 +48,37 @@ npx wgs
 
 ## Command API
 
-### 开发模式
-
-编译并 watching。
+开发模式：
 
 ```bash
-Usage: wgs serve [options]
-
-Options:
-  -c, --config <string>  配置文件，默认为weapp.config.js
-  -m, --mode <string>    编译环境名称，默认为development
-  --no-build-npm         禁用自动构建npm
-  -h, --help             display help for command
+# 编译 + watch
+wgs [options]
+# 或者
+wgs serve [options]
 ```
 
-ps：serve 名称可省略，即 `wgs [options]`
-
-### 单独打包
-
-只编译。
+打包模式：
 
 ```bash
-Usage: wgs build [options]
-
-Options:
-  -m, --mode <string>    编译环境名称，默认为production
-  -c, --config <string>  配置文件，默认为weapp.config.js
-  -h, --help             display help for command
+# 仅编译
+wgs build [options]
 ```
 
-### 构建 npm
-
-等同微信开发者工具中的【构建 npm】
+构建 npm
 
 ```bash
-Usage: wgs build:npm [options]
-
-Options:
-  -m, --mode <string>    编译环境名称，默认为production
-  -c, --config <string>  配置文件，默认为weapp.config.js
-  -h, --help             display help for command
+# 生成 miniprogram_npm 目录
+wgs build:npm [options]
 ```
 
-### 代码上传
-
-等同微信开发者工具中的【上传代码】。
+代码上传:
 
 ```bash
-Usage: wgs upload [options] [desc]
-
-Options:
-  -v, --ver <string>     版本号，必填
-  -m, --mode <string>    编译环境名称，默认为production
-  -c, --config <string>  配置文件，默认为weapp.config.js
-  -dd, --verbose         是否打印详细日志
-  -h, --help             display help for command
+# 先编译再上传
+wgs upload -v 1.0.1 [desc]
 ```
+
+ps: 各命令选项可通过 `--help` 查看
 
 ### 小程序 ci/cli 集成说明
 

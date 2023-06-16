@@ -1,8 +1,8 @@
 // target
 let SfcParser = require('utils/sfc-parser')
 
-describe('helper', function () {
-    it('parse', function () {
+describe('utils', function () {
+    it('sfc-parser', function () {
         let content = `
 <template>
     <div active>
@@ -33,7 +33,7 @@ describe('helper', function () {
     </div>
     <div v-else-if="loaded">loaded</div>
     <div v-else>loading</div>
-    <div v-for="item in list"></div>
+    <div v-for="item in list" :key="id"></div>
     <div v-for="(stu, idx) in list" :key="stu.name"></div>
 </template>
 
@@ -98,14 +98,14 @@ module.exports = {
     <text class="invalid"></text>
     <text></text>
 
-    <view wx:if="{{ inited }}" hidden="{{ show === false }}" class="qrcode" id="{{ id }}" align="{{{
-        name: prefix ? 'left' : 'right'
-    }}}" bind:click="onClick" catch:move="onMove" capture-bind="onBlur" capture-catch:focus mut-bind="onTarget" mut-touch="onTouch">
+    <view wx:if="{{ inited }}" hidden="{{ show === false }}" class="qrcode" id="{{ id }}" align="{{ {
+            name: prefix ? 'left' : 'right'
+        } }}" bind:click="onClick" catch:move="onMove" capture-bind:blur="onBlur" capture-catch:focus="onFocus" mut-bind:target="onTarget" mut-bind:touch="onTouch">
         {{ dot ? '' : displayValue > max ? max + '+' : displayValue }}
     </view>
     <view wx:elif="{{ loaded }}">loaded</view>
     <view wx:else>loading</view>
-    <view wx:for="{{ list }}"></view>
+    <view wx:for="{{ list }}" wx:key="id"></view>
     <view wx:for="{{ list }}" wx:for-item="{{ stu }}" wx:for-index="{{ idx }}" wx:key="name"></view>
 `)
         // compare js

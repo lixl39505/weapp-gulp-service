@@ -1,6 +1,6 @@
 {
     "name": "weapp-gulp-service",
-    "version": "1.0.8",
+    "version": "1.0.10",
     "description": "微信小程序预编译工作流 & weapp precompile workflow",
     "main": "src/index.js",
     "bin": {
