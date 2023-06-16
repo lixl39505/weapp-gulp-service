@@ -33,7 +33,7 @@ describe('utils', function () {
     </div>
     <div v-else-if="loaded">loaded</div>
     <div v-else>loading</div>
-    <div v-for="item in list"></div>
+    <div v-for="item in list" :key="id"></div>
     <div v-for="(stu, idx) in list" :key="stu.name"></div>
 </template>
 
@@ -105,7 +105,7 @@ module.exports = {
     </view>
     <view wx:elif="{{ loaded }}">loaded</view>
     <view wx:else>loading</view>
-    <view wx:for="{{ list }}"></view>
+    <view wx:for="{{ list }}" wx:key="id"></view>
     <view wx:for="{{ list }}" wx:for-item="{{ stu }}" wx:for-index="{{ idx }}" wx:key="name"></view>
 `)
         // compare js
