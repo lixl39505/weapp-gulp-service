@@ -9,7 +9,6 @@ const connector = require('../utils/connector')
 // utils
 const rqp = require('./require-piper')
 const progress = require('./progress')
-const resolveOptions = require('../config')
 const internalTasks = require('../config/tasks')
 const { queueTask } = require('../utils/scheduler')
 const {
@@ -53,7 +52,7 @@ function logError(err) {
 
 // 编译器
 class Compiler extends Events {
-    constructor(cmdOptions) {
+    constructor(options) {
         super()
 
         // 运行中
@@ -75,20 +74,17 @@ class Compiler extends Events {
         this._internalTasks = {}
         // 本地存储
         this._db = null
-        // async config
-        this._ready = Promise.resolve()
-            // configure
-            .then(() => resolveOptions(cmdOptions))
-            // validation
-            .then((options) => {
-                this.options = options
-                if (!this.options.output) {
-                    throw new Error('outputDir is required')
-                }
-            })
-            // init
-            .then(() => this._init())
-            .then(() => (this._inited = true))
+
+        // init
+        this.options = options
+        if (!this.options.output) {
+            throw new Error('outputDir is required')
+        }
+        this._ready = this._init().then(() => {
+            this._inited = true
+
+            return this
+        })
     }
 
     // 初始化

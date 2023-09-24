@@ -5,7 +5,7 @@ const { objectMerge, loadProcessEnv } = require('../utils/helper')
 const defaults = require('./defaults')
 
 // async 获取编译选项
-function resolveOptions(cmdOptions) {
+function resolveOptions(cmdOptions, context) {
     let args = cmdOptions.args,
         configFile = path.resolve(args.config),
         mode = args.mode,
@@ -41,10 +41,14 @@ function resolveOptions(cmdOptions) {
 
         // 支持回调
         if (options.callback) {
-            let res = options.callback.call(null, options)
+            let res = options.callback.call(null, options, context)
             // 支持异步 thenable
-            if (res && res.then) {
-                return res.then((mutateOptions) => mutateOptions || options)
+            if (res) {
+                if (res.then) {
+                    return res.then(
+                        (replaceOptions) => replaceOptions || options
+                    )
+                } else options = res
             }
         }
 

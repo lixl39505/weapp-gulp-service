@@ -6,6 +6,7 @@ const sinon = require('sinon')
 const proxyquire = require('proxyquire')
 const low = require('lowdb')
 const Memory = require('lowdb/adapters/Memory')
+const C1 = require('core/compiler')
 //
 const { getPkgJson, fixture, fromArray, toGlobPath } = require('~h')
 const fakeWeappConfig = require('~/fakes/defaults')
@@ -74,14 +75,48 @@ function gulpPassThrough(options = {}) {
     })
 }
 
-//
+// stub
 function createWatcher() {
     return {
         close: sinon.fake(),
     }
 }
 
-function createCompiler(stub = {}, plugins = []) {
+// stub resolveOptions async
+function resolveOptions(cmdOptions, context) {
+    // resolve options
+    let options = fakeWeappConfig()
+    options.tasks = {
+        js: {
+            test: `./**/*.js`,
+            use: ['gulp-js'],
+        },
+        less: {
+            test: `./**/*.less`,
+            use: [['gulp-less', (options) => options]],
+            compileAncestor: true,
+        },
+        img: {
+            test: ({ imgType }) => `./**/*.{${imgType.join(',')}}`,
+            use: 'gulp-img',
+        },
+    }
+    Object.assign(options, cmdOptions)
+    // callback
+    if (options.callback) {
+        let res = options.callback.call(null, options, context)
+        if (res) {
+            if (res.then) {
+                return res.then((replaceOptions) => replaceOptions || options)
+            } else options = res
+        }
+    }
+    // async
+    return Promise.resolve(options)
+}
+
+// async
+function createCompiler(cmdOptions, stub = {}) {
     let Compiler = proxyquire(
         'core/compiler',
         Object.assign(
@@ -100,28 +135,6 @@ function createCompiler(stub = {}, plugins = []) {
                 './require-piper': rpqStub,
                 // progressBar
                 './progress': progressStub,
-                // resolveOptions
-                '../config': function () {
-                    let options = fakeWeappConfig()
-                    // 编译任务
-                    options.tasks = {
-                        js: {
-                            test: `./**/*.js`,
-                            use: ['gulp-js'],
-                        },
-                        less: {
-                            test: `./**/*.less`,
-                            use: [['gulp-less', (options) => options]],
-                            compileAncestor: true,
-                        },
-                        img: {
-                            test: ({ imgType }) =>
-                                `./**/*.{${imgType.join(',')}}`,
-                            use: 'gulp-img',
-                        },
-                    }
-                    return options
-                },
                 // queueTask
                 '../utils/scheduler': schedulerStub,
                 // helpers
@@ -137,23 +150,18 @@ function createCompiler(stub = {}, plugins = []) {
             stub
         )
     )
-    // use plugins
-    plugins.forEach((v) => {
-        if (Array.isArray(v)) {
-            Compiler.use(v[0], v[1])
-        } else {
-            Compiler.use(v)
-        }
-    })
-    // new instance
-    let ins = new Compiler()
-    // fake extension api
-    ins.cleanExpired = sinon.fake.resolves([fixture('a.js')])
-    ins.removeGraphNodes = sinon.fake()
-    ins.reverseDep = sinon.fake()
-    ins.removeCache = sinon.fake()
 
-    return ins
+    return resolveOptions(cmdOptions, { Compiler }).then((options) => {
+        // new instance
+        let ins = new Compiler(options)
+        // fake extension api
+        ins.cleanExpired = sinon.fake.resolves([fixture('a.js')])
+        ins.removeGraphNodes = sinon.fake()
+        ins.reverseDep = sinon.fake()
+        ins.removeCache = sinon.fake()
+
+        return ins
+    })
 }
 
 describe('compiler', function () {
@@ -201,81 +209,72 @@ describe('compiler', function () {
     })
 
     it('require outputDir', function () {
-        let compiler = createCompiler({
-            // resolveOptions
-            '../config': function () {
-                return {}
-            },
-        })
-
-        return compiler.ready().should.rejectedWith('outputDir is required')
+        return createCompiler({
+            output: '',
+        }).should.rejectedWith('outputDir is required')
     })
 
     it('init', function () {
-        let compiler = createCompiler()
+        return createCompiler()
+            .then((compiler) => compiler.ready())
+            .then((compiler) => {
+                compiler._running.should.equal(false)
+                compiler._compiling.should.equal(false)
+                compiler.baseDir.should.equal(path.dirname(fixture()))
+                compiler.cacheDir.should.equal(
+                    path.join(compiler.baseDir, '.wgs')
+                )
+                compiler.sourceDir.should.equal(
+                    path.join(compiler.baseDir, 'src')
+                )
+                compiler.outputDir.should.equal(
+                    path.join(compiler.baseDir, 'dist')
+                )
+                compiler.options.alias.should.eql({
+                    '@': fixture(),
+                })
 
-        return compiler.ready(() => {
-            compiler._running.should.equal(false)
-            compiler._compiling.should.equal(false)
-            compiler.baseDir.should.equal(path.dirname(fixture()))
-            compiler.cacheDir.should.equal(path.join(compiler.baseDir, '.wgs'))
-            compiler.sourceDir.should.equal(path.join(compiler.baseDir, 'src'))
-            compiler.outputDir.should.equal(path.join(compiler.baseDir, 'dist'))
-            compiler.options.alias.should.eql({
-                '@': fixture(),
+                fsStub.mkdirSync.called.should.equal(true)
+
+                compiler._watchers.should.eql([])
+                compiler._userTasks.should.eql({})
+                compiler._internalTasks.should.eql({})
             })
-
-            fsStub.mkdirSync.called.should.equal(true)
-
-            compiler._watchers.should.eql([])
-            compiler._userTasks.should.eql({})
-            compiler._internalTasks.should.eql({})
-        })
     })
 
     it('task.test is required', function () {
-        // exception
-        let compiler = createCompiler({
-            // resolveOptions
-            '../config': function () {
-                let options = fakeWeappConfig()
-                // 编译任务
-                options.tasks = {
-                    js: {
-                        use: ['gulp-js'],
-                    },
-                }
-                return options
+        return createCompiler({
+            tasks: {
+                js: {
+                    use: ['gulp-js'],
+                },
             },
-        })
-
-        return compiler.run().should.rejectedWith('test is required')
+        }).then((compiler) =>
+            compiler.run().should.rejectedWith('test is required')
+        )
     })
 
     it('task.use is required', function () {
-        let compiler = createCompiler({
-            // resolveOptions
-            '../config': function () {
-                let options = fakeWeappConfig()
-                // 编译任务
-                options.tasks = {
-                    js: {
-                        test: `./**/*.js`,
-                    },
-                }
-                return options
+        return createCompiler({
+            tasks: {
+                js: {
+                    test: `./**/*.js`,
+                },
             },
-        })
-        return compiler.run().should.rejectedWith('use is required')
+        }).then((compiler) =>
+            compiler.run().should.rejectedWith('use is required')
+        )
     })
 
     it('run tasks', function () {
-        // normal
-        let compiler = createCompiler()
+        let compiler
 
         return (
-            compiler
-                .run()
+            createCompiler()
+                .then((c) => {
+                    compiler = c
+                    return compiler.run()
+                })
                 // check taskConfig
                 .then(() => {
                     let ignore = [
@@ -412,11 +411,14 @@ describe('compiler', function () {
     })
 
     it('watch tasks', function () {
-        // normal
-        let compiler = createCompiler()
+        let compiler
 
-        return compiler
-            .ready(() => {
+        return createCompiler()
+            .then((c) => {
+                compiler = c
+                return compiler.ready()
+            })
+            .then(() => {
                 // create-watcher
                 let myWatcher = compiler.createWatcher([fixture('js/*.js')])
 
@@ -439,45 +441,60 @@ describe('compiler', function () {
     })
 
     it('compile up-stream', function () {
-        // normal
-        let compiler = createCompiler()
+        let compiler
 
-        compiler.traceReverseDep = sinon.fake.returns([
-            fixture('b.less'),
-            fixture('c.less'),
-        ])
-        sinon.replace(compiler, '_runTasks', sinon.fake(compiler._runTasks))
+        return createCompiler()
+            .then((c) => {
+                compiler = c
+                compiler.traceReverseDep = sinon.fake.returns([
+                    fixture('b.less'),
+                    fixture('c.less'),
+                ])
+                sinon.replace(
+                    compiler,
+                    '_runTasks',
+                    sinon.fake(compiler._runTasks)
+                )
 
-        return compiler.run().then(() => {
-            // 编译上游模块
-            compiler._compileUpStream({
-                totalHit: 1,
-                files: [fixture('a.less')],
+                return compiler.run()
             })
+            .then(() => {
+                // 编译上游模块
+                compiler._compileUpStream({
+                    totalHit: 1,
+                    files: [fixture('a.less')],
+                })
 
-            let tasks = compiler._runTasks.firstArg
-            // js-task
-            Object.keys(tasks).should.lengthOf(1)
-            // a.js b.js
-            tasks.less.test.globs.should.lengthOf(2)
-        })
+                let tasks = compiler._runTasks.firstArg
+                // js-task
+                Object.keys(tasks).should.lengthOf(1)
+                // a.js b.js
+                tasks.less.test.globs.should.lengthOf(2)
+            })
     })
 
     it('increment compile', function () {
-        // normal
-        let compiler = createCompiler()
+        let compiler
 
-        compiler.traceReverseDep = sinon.fake.returns([
-            fixture('b.js'),
-            fixture('c.js'),
-        ])
-        sinon.replace(compiler, '_runTasks', sinon.fake(compiler._runTasks))
-
-        // 增量编译在run之前是不生效的
         return (
-            compiler
-                .ready(() => {
+            createCompiler()
+                .then((c) => {
+                    compiler = c
+                    compiler.traceReverseDep = sinon.fake.returns([
+                        fixture('b.js'),
+                        fixture('c.js'),
+                    ])
+                    sinon.replace(
+                        compiler,
+                        '_runTasks',
+                        sinon.fake(compiler._runTasks)
+                    )
+
+                    return compiler.ready()
+                })
+                .then(() => {
                     compiler.incrementCompile(fixture('a.js'))
+                    // 增量编译在run之前是不生效的
                     compiler._runTasks.called.should.equal(false)
                 })
                 // run tasks
@@ -512,16 +529,19 @@ describe('compiler', function () {
     })
 
     it('hooks', function () {
-        // normal
-        let compiler = createCompiler(),
-            handler = sinon.fake(function (payload) {
+        let compiler
+
+        return createCompiler().then((c) => {
+            compiler = c
+            let handler = sinon.fake(function (payload) {
                 var { next } = payload
                 next()
             })
 
-        compiler.tap('beforeCompile', handler)
-        return compiler.fire('beforeCompile', 'hello').then(() => {
-            handler.called.should.equal(true)
+            compiler.tap('beforeCompile', handler)
+            compiler.fire('beforeCompile', 'hello').then(() => {
+                handler.called.should.equal(true)
+            })
         })
     })
 
@@ -533,32 +553,38 @@ describe('compiler', function () {
             onAfterCompile = sinon.fake(({ next }) => next())
 
         let myPlugin = sinon.fake(function (Compiler, options) {
-            Compiler.installHook({
-                init: onInit,
-                clean: onClean,
-                beforeCompile: onBeforeCompile,
-                afterCompile: onAfterCompile,
+                Compiler.installHook({
+                    init: onInit,
+                    clean: onClean,
+                    beforeCompile: onBeforeCompile,
+                    afterCompile: onAfterCompile,
+                })
+                Compiler.prototype.$getName = function () {
+                    return 'foo'
+                }
+            }),
+            compiler
+
+        return createCompiler({
+            callback(options, { Compiler }) {
+                Compiler.use(myPlugin, { name: 'test' })
+                // redundent
+                Compiler.use(myPlugin)
+            },
+        })
+            .then((c) => {
+                compiler = c
+                return compiler.run()
             })
-            Compiler.prototype.$getName = function () {
-                return 'foo'
-            }
-        })
+            .then(() => {
+                onInit.callCount.should.equal(1)
+                onClean.callCount.should.equal(1)
+                onBeforeCompile.callCount.should.equal(1)
+                onAfterCompile.callCount.should.equal(1)
 
-        let compiler = createCompiler({}, [
-            [myPlugin, { name: 'test' }],
-            // redundent
-            myPlugin,
-        ])
-
-        return compiler.run().then(() => {
-            onInit.callCount.should.equal(1)
-            onClean.callCount.should.equal(1)
-            onBeforeCompile.callCount.should.equal(1)
-            onAfterCompile.callCount.should.equal(1)
-
-            compiler.$getName().should.equal('foo')
-            myPlugin.firstCall.args[1].should.eql({ name: 'test' })
-        })
+                compiler.$getName().should.equal('foo')
+                myPlugin.firstCall.args[1].should.eql({ name: 'test' })
+            })
     })
 
     it('piper operation', function () {
@@ -567,16 +593,17 @@ describe('compiler', function () {
         }
         rqp.cache = {}
 
-        let compiler = createCompiler({
-                './require-piper': rqp,
-            }),
-            Compiler = compiler.constructor,
-            p1 = sinon.fake()
+        return createCompiler(null, {
+            './require-piper': rqp,
+        }).then((compiler) => {
+            let Compiler = compiler.constructor,
+                p1 = sinon.fake()
 
-        Compiler.setPipe('myPipe', p1)
-        rqp.cache['myPipe'].should.equal(p1)
-        Compiler.getPipe('myPipe').should.equal(true)
-        Compiler.removePipe('myPipe')
-        should.not.exist(rqp.cache['myPipe'])
+            Compiler.setPipe('myPipe', p1)
+            rqp.cache['myPipe'].should.equal(p1)
+            Compiler.getPipe('myPipe').should.equal(true)
+            Compiler.removePipe('myPipe')
+            should.not.exist(rqp.cache['myPipe'])
+        })
     })
 })

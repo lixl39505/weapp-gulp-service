@@ -5,6 +5,7 @@ const path = require('path')
 const { dateFormat } = require('../utils/helper')
 const { upload: wxUpload, buildNpm: wxBuildNpm } = require('../core/wx-tool')
 const Compiler = require('../index')
+const resolveOptions = require('../config/index')
 
 /**
  * cli交互处理
@@ -24,9 +25,13 @@ program
     .option('-m, --mode <string>', 'compile mode', 'development')
     .option('--no-build-npm', 'disable automatic building of NPM')
     .action(function (params) {
-        var compiler = new Compiler({ args: params.opts() })
+        resolveOptions({ args: params.opts() }, { Compiler }).then(
+            (options) => {
+                var compiler = new Compiler(options)
 
-        compiler.watch()
+                compiler.watch()
+            }
+        )
     })
 
 // build 打包
@@ -41,9 +46,13 @@ program
     .option('-m, --mode <string>', 'compile mode', 'production')
     .option('--no-npm-build', 'disable automatic building of NPM')
     .action(function (params) {
-        var compiler = new Compiler({ args: params.opts() })
+        resolveOptions({ args: params.opts() }, { Compiler }).then(
+            (options) => {
+                var compiler = new Compiler(options)
 
-        compiler.run()
+                compiler.run()
+            }
+        )
     })
 
 // upload 上传代码
@@ -60,20 +69,19 @@ program
     .option('-dd, --verbose', 'loglevel verbose')
     .action(function (desc, params) {
         var args = {
-                ...params.opts(),
-                desc: desc
-                    ? `"${desc}"`
-                    : `"${dateFormat(Date.now())} ${params.mode} v${
-                          params.ver
-                      }"`,
-            },
-            compiler = new Compiler({
-                args,
-            })
+            ...params.opts(),
+            desc: desc
+                ? `"${desc}"`
+                : `"${dateFormat(Date.now())} ${params.mode} v${params.ver}"`,
+        }
 
-        compiler.run().then(() => {
-            // 上传
-            wxUpload({ ...args, project: path.dirname(args.config) })
+        resolveOptions({ args }, { Compiler }).then((options) => {
+            var compiler = new Compiler(options)
+
+            compiler.run().then(() => {
+                // 上传
+                wxUpload({ ...args, project: path.dirname(args.config) })
+            })
         })
     })
 
