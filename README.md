@@ -18,7 +18,7 @@ weapp-gulp-service 是一款基于 gulp 实现的微信小程序预编译开发�
 1. 0 配置使用；
 1. 支持增量编译；
 1. 支持自定义 task；
-1. 支持插件扩展；
+1. 支持插件扩展（类似 Vue.use）；
 1. 支持自动构建 npm（需开启 wxDevtool cli 服务）；
 1. 支持命令行上传代码（需集成 `miniprogram-ci`）；
 
