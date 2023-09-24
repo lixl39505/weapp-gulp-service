@@ -4,7 +4,7 @@ const ansiColors = require('ansi-colors')
 const { objectMerge, loadProcessEnv } = require('../utils/helper')
 const defaults = require('./defaults')
 
-// 获取编译选项
+// async 获取编译选项
 function resolveOptions(cmdOptions) {
     let args = cmdOptions.args,
         configFile = path.resolve(args.config),
@@ -12,9 +12,9 @@ function resolveOptions(cmdOptions) {
         options = {}
 
     // 静态环境变量
-    const env = loadProcessEnv(mode, path.dirname(configFile))
-    env.mode = mode
-    Object.assign(process.env, env)
+    const envs = loadProcessEnv(mode, path.dirname(configFile))
+    envs.mode = mode
+    Object.assign(process.env, envs)
 
     // 用户配置
     if (fs.existsSync(configFile)) {
@@ -22,28 +22,34 @@ function resolveOptions(cmdOptions) {
     }
 
     // 运行时环境变量
-    options.env = Object.assign(env, options.env)
-    Object.assign(process.env, env)
+    options.env = Object.assign(envs, options.env)
+    Object.assign(process.env, envs)
 
     console.log(ansiColors.white('current env:'))
     console.log(ansiColors.white(JSON.stringify(options.env, null, 4)))
 
-    // merge options
-    options.config = configFile
-    Object.assign(options, cmdOptions)
-    options = objectMerge(defaults(), options)
+    return Promise.resolve().then(() => {
+        // merge options
+        options.config = configFile
+        Object.assign(options, cmdOptions) // cmd first
+        options = objectMerge(defaults(), options) // user second
 
-    // normalize
-    if (options.ignore && !Array.isArray(options.ignore)) {
-        options.ignore = [options.ignore]
-    }
+        // normalize
+        if (options.ignore && !Array.isArray(options.ignore)) {
+            options.ignore = [options.ignore]
+        }
 
-    // 支持回调
-    if (options.callback) {
-        options.callback.call(null, options)
-    }
+        // 支持回调
+        if (options.callback) {
+            let res = options.callback.call(null, options)
+            // 支持异步 thenable
+            if (res && res.then) {
+                return res.then((mutateOptions) => mutateOptions || options)
+            }
+        }
 
-    return options
+        return options
+    })
 }
 
 module.exports = resolveOptions

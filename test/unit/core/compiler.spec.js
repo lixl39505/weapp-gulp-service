@@ -200,40 +200,40 @@ describe('compiler', function () {
         pkgWatcherStub = sinon.fake(createWatcher)
     })
 
-    it('init', function () {
-        should.Throw(() => {
-            // exception
-            createCompiler({
-                // resolveOptions
-                '../config': function () {
-                    return {}
-                },
-            })
-        }, 'outputDir is required')
-
-        // normal
-        let compiler = createCompiler()
-
-        compiler.running.should.equal(false)
-        compiler.compiling.should.equal(false)
-        compiler.baseDir.should.equal(path.dirname(fixture()))
-        compiler.cacheDir.should.equal(path.join(compiler.baseDir, '.wgs'))
-        compiler.sourceDir.should.equal(path.join(compiler.baseDir, 'src'))
-        compiler.outputDir.should.equal(path.join(compiler.baseDir, 'dist'))
-        compiler.options.alias.should.eql({
-            '@': fixture(),
+    it('require outputDir', function () {
+        let compiler = createCompiler({
+            // resolveOptions
+            '../config': function () {
+                return {}
+            },
         })
 
-        fsStub.mkdirSync.called.should.equal(true)
-
-        compiler._watchers.should.eql([])
-        compiler._userTasks.should.eql({})
-        compiler._internalTasks.should.eql({})
-
-        return compiler._inited
+        return compiler.ready().should.rejectedWith('outputDir is required')
     })
 
-    it('run tasks', function () {
+    it('init', function () {
+        let compiler = createCompiler()
+
+        return compiler.ready(() => {
+            compiler._running.should.equal(false)
+            compiler._compiling.should.equal(false)
+            compiler.baseDir.should.equal(path.dirname(fixture()))
+            compiler.cacheDir.should.equal(path.join(compiler.baseDir, '.wgs'))
+            compiler.sourceDir.should.equal(path.join(compiler.baseDir, 'src'))
+            compiler.outputDir.should.equal(path.join(compiler.baseDir, 'dist'))
+            compiler.options.alias.should.eql({
+                '@': fixture(),
+            })
+
+            fsStub.mkdirSync.called.should.equal(true)
+
+            compiler._watchers.should.eql([])
+            compiler._userTasks.should.eql({})
+            compiler._internalTasks.should.eql({})
+        })
+    })
+
+    it('task.test is required', function () {
         // exception
         let compiler = createCompiler({
             // resolveOptions
@@ -248,9 +248,12 @@ describe('compiler', function () {
                 return options
             },
         })
-        should.Throw(() => compiler.run(), 'test is required')
 
-        compiler = createCompiler({
+        return compiler.run().should.rejectedWith('test is required')
+    })
+
+    it('task.use is required', function () {
+        let compiler = createCompiler({
             // resolveOptions
             '../config': function () {
                 let options = fakeWeappConfig()
@@ -263,10 +266,12 @@ describe('compiler', function () {
                 return options
             },
         })
-        should.Throw(() => compiler.run(), 'use is required')
+        return compiler.run().should.rejectedWith('use is required')
+    })
 
+    it('run tasks', function () {
         // normal
-        compiler = createCompiler()
+        let compiler = createCompiler()
 
         return (
             compiler
@@ -274,10 +279,10 @@ describe('compiler', function () {
                 // check taskConfig
                 .then(() => {
                     let ignore = [
+                        '**/node_modules/**',
                         '*.md',
                         toGlobPath(path.join(compiler.baseDir, 'dist/**')),
                         toGlobPath(path.join(compiler.baseDir, '.wgs/**')),
-                        '**/node_modules/**',
                     ]
                     // js task
                     compiler._userTasks.js.should.deep.include({
@@ -379,7 +384,6 @@ describe('compiler', function () {
                     should.not.exist(context.run)
                     should.not.exist(context.incrementCompile)
                     // public
-                    should.exist(context.running)
                     should.exist(context.cleanExpired)
                 })
                 // check clean
@@ -397,7 +401,7 @@ describe('compiler', function () {
                     progressStub.append.firstArg.should.equal(total)
                     progressStub.increment.callCount.should.equal(total)
                     // cache
-                    compiler.compiling.should.equal(false)
+                    compiler._compiling.should.equal(false)
                     compiler.reverseDep.called.should.equal(true)
                     compiler.query('env').should.eql({
                         APP_PUBLICK_PATH: '/',
@@ -410,17 +414,19 @@ describe('compiler', function () {
     it('watch tasks', function () {
         // normal
         let compiler = createCompiler()
-        // create-watcher
-        let myWatcher = compiler.createWatcher([fixture('js/*.js')])
-
-        myWatcher.emit('error', new Error('watch error'))
-        helperStub.log.lastArg.should.equal('Error: watch error')
-        gulpStub.emit('error', new Error('gulp error'))
-        helperStub.log.lastArg.should.equal('Error: gulp error')
-        myWatcher.close()
 
         return compiler
-            .watch()
+            .ready(() => {
+                // create-watcher
+                let myWatcher = compiler.createWatcher([fixture('js/*.js')])
+
+                myWatcher.emit('error', new Error('watch error'))
+                helperStub.log.lastArg.should.equal('Error: watch error')
+                gulpStub.emit('error', new Error('gulp error'))
+                helperStub.log.lastArg.should.equal('Error: gulp error')
+                myWatcher.close()
+            })
+            .then(() => compiler.watch())
             .then(() => {
                 sourceWatcherStub.called.should.equal(true)
                 pkgWatcherStub.called.should.equal(true)
@@ -468,38 +474,41 @@ describe('compiler', function () {
         sinon.replace(compiler, '_runTasks', sinon.fake(compiler._runTasks))
 
         // 增量编译在run之前是不生效的
-        compiler.incrementCompile(fixture('a.js'))
-        compiler._runTasks.called.should.equal(false)
-
-        // run tasks
-        return compiler
-            .run()
-            .then(() => {
-                compiler.incrementCompile(fixture('a.js'))
-
-                let tasks = compiler._runTasks.firstArg
-                // only js
-                Object.keys(tasks).should.lengthOf(1)
-                Object.values(tasks).forEach((v) => {
-                    // no cache
-                    v.cache.should.equal(false)
+        return (
+            compiler
+                .ready(() => {
+                    compiler.incrementCompile(fixture('a.js'))
+                    compiler._runTasks.called.should.equal(false)
                 })
-                // no up files
-                tasks.js.test.globs.should.lengthOf(1)
-            })
-            .then(() => {
-                compiler.incrementCompile(fixture('a.less'))
+                // run tasks
+                .then(() => compiler.run())
+                .then(() => {
+                    compiler.incrementCompile(fixture('a.js'))
 
-                let tasks = compiler._runTasks.firstArg
-                // less + js
-                Object.keys(tasks).should.lengthOf(2)
-                Object.values(tasks).forEach((v) => {
-                    // no cache
-                    v.cache.should.equal(false)
+                    let tasks = compiler._runTasks.firstArg
+                    // only js
+                    Object.keys(tasks).should.lengthOf(1)
+                    Object.values(tasks).forEach((v) => {
+                        // no cache
+                        v.cache.should.equal(false)
+                    })
+                    // no up files
+                    tasks.js.test.globs.should.lengthOf(1)
                 })
-                // two up files
-                tasks.js.test.globs.should.lengthOf(2)
-            })
+                .then(() => {
+                    compiler.incrementCompile(fixture('a.less'))
+
+                    let tasks = compiler._runTasks.firstArg
+                    // less + js
+                    Object.keys(tasks).should.lengthOf(2)
+                    Object.values(tasks).forEach((v) => {
+                        // no cache
+                        v.cache.should.equal(false)
+                    })
+                    // two up files
+                    tasks.js.test.globs.should.lengthOf(2)
+                })
+        )
     })
 
     it('hooks', function () {

@@ -53,23 +53,46 @@ function logError(err) {
 
 // 编译器
 class Compiler extends Events {
-    constructor(options) {
+    constructor(cmdOptions) {
         super()
-        // state
-        this.options = resolveOptions(options)
-        // validation
-        if (!this.options.output) {
-            throw new Error('outputDir is required')
-        }
-        this._inited = this._init()
+
+        // 运行中
+        this._running = false
+        // 编译中
+        this._compiling = false
+        // 初始化完毕标志
+        this._inited = false
+        // global ignore
+        this._ignore = ['**/node_modules/**']
+        // 版本号
+        this._version = pkgInfo.version
+        // hooks
+        this._hooks = objectMerge({}, hooks)
+        // watchers
+        this._watchers = []
+        // tasks
+        this._userTasks = {}
+        this._internalTasks = {}
+        // 本地存储
+        this._db = null
+        // async config
+        this._ready = Promise.resolve()
+            // configure
+            .then(() => resolveOptions(cmdOptions))
+            // validation
+            .then((options) => {
+                this.options = options
+                if (!this.options.output) {
+                    throw new Error('outputDir is required')
+                }
+            })
+            // init
+            .then(() => this._init())
+            .then(() => (this._inited = true))
     }
 
     // 初始化
     _init() {
-        // 运行中
-        this.running = false
-        // 编译中
-        this.compiling = false
         // 基路径（实际的cwd）
         this.baseDir = this.options.baseDir = path.dirname(this.options.config)
         // 缓存目录
@@ -97,23 +120,17 @@ class Compiler extends Events {
             fs.mkdirSync(this.cacheDir)
         }
 
-        // private data
-        this._ignore = this.options.ignore || [] // 全局忽略文件
-        this._ignore = dedup(
-            this._ignore.concat([
-                `${toGlobPath(this.outputDir)}/**`,
-                `${toGlobPath(this.cacheDir)}/**`,
-                '**/node_modules/**',
-            ])
+        // user ignore
+        this._ignore.push(
+            ...this.options.ignore,
+            `${toGlobPath(this.outputDir)}/**`,
+            `${toGlobPath(this.cacheDir)}/**`
         )
-        this._version = pkgInfo.version // 版本号
-        this._hooks = objectMerge({}, hooks) // hooks
+        this._ignore = dedup(this._ignore)
+        // init db
         this._db = connector({
             dir: this.cacheDir,
         })
-        this._watchers = []
-        this._userTasks = {}
-        this._internalTasks = {}
 
         // init hooks
         return this.fire('init')
@@ -229,7 +246,7 @@ class Compiler extends Events {
     // 编译前清理动作
     _clean() {
         // 文件在磁盘上可能发生了变动，需要维护状态一致性
-        return this._inited
+        return this._ready
             .then(() => this.cleanExpired())
             .then((expired) => this.fire('clean', { expired }))
     }
@@ -240,7 +257,7 @@ class Compiler extends Events {
 
         return (
             // init-hook
-            this._inited
+            this._ready
                 // progress
                 .then(() => {
                     let paths = [],
@@ -256,7 +273,7 @@ class Compiler extends Events {
                         })
 
                     // lock
-                    this.compiling = true
+                    this._compiling = true
 
                     progress.append(
                         statsFilesNum(paths, {
@@ -352,7 +369,7 @@ class Compiler extends Events {
                 .then(() => (runErr ? Promise.reject(runErr) : session))
                 .finally(() => {
                     // unlock
-                    this.compiling = false
+                    this._compiling = false
                 })
         )
     }
@@ -435,30 +452,34 @@ class Compiler extends Events {
     }
     // 编译
     run() {
-        if (this.running) {
+        if (this._running) {
             return
         }
-        this.running = true
-        this._userTasks = this._normalizeTasks(this.options.tasks || {})
-        this._internalTasks = this._normalizeTasks(internalTasks)
+        this._running = true
 
-        return this._inited
+        return this._ready
+            .then(() => {
+                this._userTasks = this._normalizeTasks(this.options.tasks || {})
+                this._internalTasks = this._normalizeTasks(internalTasks)
+            })
             .then(() => this._setCompileContext())
             .then(() => this._clean())
             .then(() => this._runTasks(this._userTasks, this._internalTasks))
             .then((session) => this._compileUpStream(session))
-            .finally(() => (this.running = false))
+            .finally(() => (this._running = false))
     }
     // 编译并watch
     watch() {
-        if (this.running) {
+        if (this._running) {
             return
         }
-        this.running = true
-        this._userTasks = this._normalizeTasks(this.options.tasks || {})
-        this._internalTasks = this._normalizeTasks(internalTasks)
+        this._running = true
 
-        return this._inited
+        return this._ready
+            .then(() => {
+                this._userTasks = this._normalizeTasks(this.options.tasks || {})
+                this._internalTasks = this._normalizeTasks(internalTasks)
+            })
             .then(() => this._setCompileContext())
             .then(() => this._clean())
             .then(() => this._runTasks(this._userTasks, this._internalTasks))
@@ -468,7 +489,7 @@ class Compiler extends Events {
                 this._watchers.push(sourceWatcher(this))
                 this._watchers.push(pkgWatcher(this))
             })
-            .finally(() => (this.running = false))
+            .finally(() => (this._running = false))
     }
     // 停止watch
     stop() {
@@ -642,6 +663,10 @@ class Compiler extends Events {
         })
 
         return ups
+    }
+    // for test
+    ready(cb) {
+        return cb ? this._ready.then(cb) : this._ready
     }
 
     // 插件安装

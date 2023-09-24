@@ -18,7 +18,7 @@ module.exports = function () {
     function Compiler() {
         this._db = low(new Memory())
         this._hooks = objectMerge({}, hooks) // hooks
-        this._inited = this.fire('init')
+        this._ready = this.fire('init')
     }
     // use
     Compiler.installHook = sinon.fake(function (name, handler) {
@@ -63,7 +63,7 @@ module.exports = function () {
         }),
         // 模拟一次正常运行
         run() {
-            return this._inited
+            return this._ready
                 .then(() => this.fire('clean', { expired: [] }))
                 .then(() => this.fire('beforeCompile', { session: this }))
                 .then(() => this.fire('afterCompile', { session: this }))
