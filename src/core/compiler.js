@@ -270,7 +270,7 @@ class Compiler extends Events {
 
                     // lock
                     this._compiling = true
-
+                    // 统计总文件数
                     progress.append(
                         statsFilesNum(paths, {
                             ignore: dedup(ignore),
@@ -628,8 +628,8 @@ class Compiler extends Events {
         Object.assign(session, {
             startTime: Date.now(), // 编译开始时间
             endTime: -1, // 编译结束时间
-            files: [], // 编译文件列表
-            total: 0, // 总文件数
+            files: [], // 发生编译的文件列表
+            total: 0, // 扫描到的总文件数
             totalCache: 0, // 缓存总数
             totalHit: 0, // 缓存命中数
         })
