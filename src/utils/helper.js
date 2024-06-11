@@ -46,8 +46,8 @@ function objectMerge(to, from = {}) {
                     typeof fromVal == 'undefined'
                         ? to[k]
                         : type(fromVal) == 'array'
-                        ? [...fromVal]
-                        : fromVal
+                          ? [...fromVal]
+                          : fromVal
             }
         }
     })

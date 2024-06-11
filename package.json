@@ -13,6 +13,7 @@
     ],
     "scripts": {
         "test": "mocha",
+        "format": "prettier src/**/*.js --write",
         "test:debug": "mocha --inspect-brk",
         "coverage": "nyc -r json -r html mocha",
         "patch": "npm version patch && npm publish",
@@ -84,6 +85,7 @@
         "html-minifier-terser": "^5.1.1",
         "mocha": "^8.4.0",
         "nyc": "^15.1.0",
+        "prettier": "^3.3.1",
         "proxyquire": "^2.1.3",
         "sinon": "^11.1.1",
         "terser": "^5.7.0"

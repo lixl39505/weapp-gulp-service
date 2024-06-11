@@ -90,7 +90,7 @@ const parserMap = {
                 if (is[0] === '/') {
                     is = is.slice(1)
                 }
-                
+
                 // fullpath
                 route.__is__ = is
 

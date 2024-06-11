@@ -65,9 +65,12 @@ module.exports = function (options = {}) {
         // 依赖收集
         gulpDepend({ matchers: [cssImportReg, cssUrlReg] }),
         // 如果存在vars，则手动添加依赖
-        gulpIf(function () {
-            return !!lessVar
-        }, gulpDepAdd({ paths: lessVar })),
+        gulpIf(
+            function () {
+                return !!lessVar
+            },
+            gulpDepAdd({ paths: lessVar })
+        ),
         // less2css
         gulpLess(lessOptons),
         // css convert
