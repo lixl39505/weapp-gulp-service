@@ -1,6 +1,6 @@
 {
     "name": "weapp-gulp-service",
-    "version": "1.0.11",
+    "version": "1.0.12",
     "description": "微信小程序预编译工作流 & weapp precompile workflow",
     "main": "src/index.js",
     "bin": {
@@ -24,7 +24,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "https://github.com/pixelsLee/weapp-gulp-service.git"
+        "url": "https://github.com/lixl39505/weapp-gulp-service.git"
     },
     "keywords": [
         "小程序",
@@ -33,11 +33,7 @@
         "alias",
         "compile"
     ],
-    "author": "pixelsLee <pixelslee@foxmail.com>",
     "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/pixelsLee/weapp-gulp-service/issues"
-    },
     "engines": {
         "node": ">=12.4.0"
     },
