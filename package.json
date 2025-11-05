@@ -69,6 +69,7 @@
         "postcss-px2rpx": "0.0.4",
         "requireg": "^0.2.2",
         "semver": "^7.3.5",
+        "through2": "^4.0.2",
         "vinyl": "^3.0.0"
     },
     "devDependencies": {
