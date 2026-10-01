@@ -1,0 +1,3 @@
+# better-sqlite3 v13 ships prebuilds/ in the npm tarball, so its install
+# script (prebuild-install || node-gyp rebuild) is unnecessary — and node-gyp
+# needs Python. Builds stay ignored on purpose.

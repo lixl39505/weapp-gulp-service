@@ -1,7 +1,0 @@
-<view>
-    <image
-        class="cover"
-        style="width: {{ realWidth }}px; height: {{ realHeight }}px"
-        src="@/img/big.jpg"
-    ></image>
-</view>

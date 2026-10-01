@@ -1,13 +1,11 @@
 .DS_Store
 node_modules
 /dist
-/debug
-/test/dist
-/test/.wgs
-/test/e2e/videos/
-/test/e2e/screenshots/
 /coverage
-.nyc_output
+*.tsbuildinfo
+
+# local state
+/.wgs
 
 # local env files
 .env.local
@@ -31,6 +29,3 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw*
-
-
-
