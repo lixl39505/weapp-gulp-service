@@ -1,108 +1,100 @@
-## 简介
+# weapp-gulp-service
 
-weapp-gulp-service 是一款基于 gulp 实现的微信小程序预编译开发工具，可以有效提升原生小程序的开发效率。主要功能如下所示：
+微信小程序预编译工作流 & weapp precompile workflow — **v2，基于 [deltic](https://github.com/lixl39505/deltic) 增量编译内核重构（TypeScript 7 / gulp 5 / streamx / SQLite 缓存）**。
 
-语法增强：
+## 特性
 
-1. 支持 less；
-2. 支持 px 自动转 rpx；
-3. 支持本地图片转 base64；
-4. 支持路径别名 alias；
-5. 支持设置环境变量（类似 vue-cli 的 .env 文件）；
-6. 支持 json5 语法；
-7. 扩展 app.json，支持表达力更好的路由写法；
-8. 支持.vue 单文件开发（兼容大部分 v-指令）；
+- **开箱即用**：默认提供一份完整的小程序任务配置，`wgs serve` 即可开发
+- **语法增强**：less（含全局 lessVar）、px2rpx、图片 base64 内联、路径别名、.env 环境变量、json5、`.vue`/`.mp` 单文件组件、app.json 扩展路由（route-map）
+- **增量编译**：基于 mtime + 配置摘要（**per-task 粒度**，改 less 参数只重编 .less）+ 环境变量伪依赖
+- **依赖图谱**：依赖收集 + 反向追踪，上游模块自动补偿编译
+- **自动 npm 构建**：package.json 变更自动 `npm install` + `build-npm`（miniprogram-ci 或开发者工具 CLI）
+- **精确产物清理**：记录每个源文件实际发射的产物，删除源文件时精确清理（含 SFC 子目录）
+- **上传**：`wgs upload` 走 miniprogram-ci（代码保护/压缩等设置从 project.config.json 映射）
 
-工具特性：
-
-1. 0 配置使用；
-1. 支持增量编译；
-1. 支持自定义 task；
-1. 支持插件扩展（类似 Vue.use）；
-1. 支持自动构建 npm（需开启 wxDevtool cli 服务）；
-1. 支持命令行上传代码（需集成 `miniprogram-ci`）；
-
-## 安装/运行
-
-全局安装并使用：
+## 安装
 
 ```bash
-npm i weapp-gulp-service -g
-# 项目根目录执行
-wgs --config /user/workspace/xx/weapp.config.js
+pnpm add -D weapp-gulp-service
 ```
 
-也可以局部安装并使用：
+要求 Node.js >= 20。
+
+## 快速开始
+
+```
+project/
+├── project.config.json     # miniprogramRoot 指向 dist/
+├── weapp.config.js         # 可选
+├── .env / .env.local / .env.[mode]
+└── src/
+    ├── app.json            # 支持 { path, title, name, meta, children } 嵌套路由
+    ├── pages/index.vue     # SFC：template / script / style / script[name=json]
+    └── styles/variables.less
+```
 
 ```bash
-npm i weapp-gulp-service -D
-# 项目根目录执行
-npx wgs
+wgs serve          # 开发（默认命令），增量 + watch
+wgs build          # 生产构建
+wgs upload -v 1.0.0 [desc]   # 构建并上传
+wgs build:npm      # 仅构建 miniprogram_npm
 ```
 
-项目 Demo 参见 [weapp-project](https://github.com/pixelsLee/weapp-gulp-service/tree/main/templates/weapp-project) （可直接作为开发模版）。
+## weapp.config.js
 
-## 详细说明
+```js
+module.exports = {
+    alias: {
+        '@': './src',
+    },
+    // 全局 less 变量文件（相对项目根）
+    lessVar: 'src/styles/variables.less',
 
-见 [docs](./docs/md) 目录。
-
-## Command API
-
-开发模式：
-
-```bash
-# 编译 + watch
-wgs [options]
-# 或者
-wgs serve [options]
+    // 可选：同步修改 / 异步替换合并后的配置
+    callback(options) {
+        options.lessVar = `src/styles/${options.env.APP_THEME}.less`
+    },
+}
 ```
 
-打包模式：
+也支持 `weapp.config.ts`（jiti 直接加载）。默认值（均可覆盖）：`px2rpx.times: 2`、`base64.maxImageSize: 8kb`、`css.rename.extname: '.wxss'`、`mp.tagAlias: { div: 'view', span: 'text' }`、`imgType: [jpg,png,svg,webp,gif]`。
 
-```bash
-# 仅编译
-wgs build [options]
+> **v2 变化**：env 不再写入 `process.env`，动态取值请使用 `callback` + `options.env`；`--no-npm-build` 统一为 `--no-build-npm`；上传 verbose 旗标改为 `--verbose`。
+
+## 环境变量
+
+`.env → .env.local → .env.[mode] → .env.[mode].local`（后者覆盖前者），值替换源码中的 `process.env.X` 字面量，并登记为伪依赖 —— **修改 .env 值会自动失效相关文件缓存**。
+
+上传/npm 构建相关：
+
+- `WE_APP_PRIVATE_KEY_PATH`：miniprogram-ci 私钥（优先）
+- `WE_CLI`：微信开发者工具 CLI 路径（兜底）
+
+## 基于 deltic 的架构
+
+wgs v2 是 deltic 的领域层：
+
+| 层 | 内容 |
+|---|---|
+| 配置层 | `weapp.config.*` 加载（jiti）、env 链、defaults 合并、callback |
+| 任务表 | `weappTasks()` — 1:1 扩展名→任务，`taskTypeMap` 把图片扩展映射到 img 任务 |
+| 管道 | `less`（含 lessVar 分支发射 variables.js/.wxss）、`css`、`wxss`、`wxml`、`wxs`、`json`/`json5`（app.json 分支）、`sfc`（切片编译+样式合并）；`js`/`depend`/`alias`/`env` 复用 deltic 内置 |
+| 插件 | 全部 deltic 原生：compile-cache（per-task 摘要 + extraDeps 版本戳）、dep-graph、clean（产物追踪） |
+| 编排 | `WeappCompiler` 门面（组合）：run/watch/stop + npm 构建编排（依赖清单哈希门 + package.json watcher） |
+
+程序化使用：
+
+```ts
+import { createWeappCompiler, resolveWeappOptions } from 'weapp-gulp-service'
+
+const options = await resolveWeappOptions({ config: 'weapp.config.js' })
+const compiler = createWeappCompiler(options)
+
+await compiler.watch()   // 或 run() / stop() / incrementCompile(...)
 ```
 
-构建 npm
+缓存目录为项目根下的 `.wgs/`（SQLite），建议加入 `.gitignore`。
 
-```bash
-# 生成 miniprogram_npm 目录
-wgs build:npm [options]
-```
+## License
 
-代码上传:
-
-```bash
-# 先编译再上传
-wgs upload -v 1.0.1 [desc]
-```
-
-ps: 各命令选项可通过 `--help` 查看
-
-### 小程序 ci/cli 集成说明
-
-_自动构建 npm_ 与*上传代码*两个功能前置依赖小程序官方服务——[wxdevtool-cli](https://developers.weixin.qq.com/miniprogram/dev/devtools/cli.html) 或者 [miniprogram-ci](https://developers.weixin.qq.com/miniprogram/dev/devtools/ci.html)。
-
-如果使用 wxdevtool-cli（以下简称 cli 模式），需设置环境变量：
-
-```bash
-# macOS
-WX_CLI=<安装路径>/Contents/MacOS/cli
-# Windows
-WX_CLI=<安装路径>/cli.bat
-```
-
-如果使用 miniprogram-ci（以下简称 ci 模式），需设置环境变量：
-
-```bash
-WE_APP_PRIVATE_KEY_PATH=<私匙路径>/private.xxxx.key
-```
-
-并安装全局依赖 miniprogram-ci；
-
-```bash
-npm i miniprogram-ci -g
-```
-
-两种方式二选一即可。如果二者同时设置，则 ci 模式优先。
+MIT

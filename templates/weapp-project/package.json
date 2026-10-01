@@ -4,9 +4,9 @@
     "description": "",
     "main": "app.js",
     "scripts": {
-        "dev": "weapp-gulp-service",
-        "prod": "weapp-gulp-service -m production",
-        "build": "weapp-gulp-service build"
+        "dev": "wgs serve",
+        "prod": "wgs serve -m production",
+        "build": "wgs build"
     },
     "keywords": [],
     "author": "",
