@@ -59,7 +59,7 @@ module.exports = {
 
 也支持 `weapp.config.ts`（jiti 直接加载）。默认值（均可覆盖）：`px2rpx.times: 2`、`base64.maxImageSize: 8kb`、`css.rename.extname: '.wxss'`、`mp.tagAlias: { div: 'view', span: 'text' }`、`imgType: [jpg,png,svg,webp,gif]`。
 
-> **v2 变化**：env 不再写入 `process.env`，动态取值请使用 `callback` + `options.env`；`--no-npm-build` 统一为 `--no-build-npm`；上传 verbose 旗标改为 `--verbose`。
+> **v2 变化**：env 不再写入 `process.env`，动态取值请使用 `callback` + `options.env`；`--no-npm-build` 统一为 `--no-build-npm`；上传 verbose 旗标改为 `--verbose`。从 1.0 升级见 [docs/MIGRATION.md](./docs/MIGRATION.md)。
 
 ## 环境变量
 
